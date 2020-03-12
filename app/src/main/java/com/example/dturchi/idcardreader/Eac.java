@@ -159,8 +159,21 @@ public class Eac {
 	}
 
 	public void parseDg11()throws Exception {
-		if(mappaDg.containsKey(new Integer(11)))
-			parseDg(new Integer(11));
+		if(mappaDg.containsKey(new Integer(11))) {
+			//parseDg(new Integer(11));
+			byte[] data = leggiDg(new Integer(11));
+			Asn1Tag tag = Asn1Tag.Companion.parse(data, false);
+			//tag.child(0).getData();
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(0).getData()));
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(1).getData()));
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(2).getData()));
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(3).getData()));
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(4).getData()));
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(5).getData()));
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(6).getData()));
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(7).getData()));
+			Log.d("ASD", AppUtil.getStringFromByteArray(tag.child(8).getData()));
+		}
 		else
 			return;
 	}
@@ -207,7 +220,8 @@ public class Eac {
 		}
 
 		byte[] chunkLen = respSM(kSessEnc, kSessMac, respDg.getResponse());
-		int maxLen = chunkLen.length; //D Asn1Tag.parseLength(chunkLen);
+		ByteArrayInputStream ms = new ByteArrayInputStream(chunkLen);
+		int maxLen = Asn1Tag.Companion.parseLength(ms, 0, chunkLen.length);
 
 		while (data.length < maxLen) {
 			int readLen = Math.min(0xe0, maxLen - data.length);//224
@@ -225,6 +239,14 @@ public class Eac {
 
 			data = AppUtil.appendByteArray(data, chunk);
 		}
+
+		//Log.d("ASD", "data byte in stringa : " + data);
+		String x = "";
+		for(int i=0; i < data.length; i++) {
+			x += " " + data[i];
+		}
+		Log.d("ASD", "data byte : " + x);
+		Log.d("ASD", "data hex : " + AppUtil.bytesToHex(data));
 
 		return data;
 	}

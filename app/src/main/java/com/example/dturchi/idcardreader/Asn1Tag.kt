@@ -1,7 +1,8 @@
 package com.example.dturchi.idcardreader
 
 import java.io.ByteArrayInputStream
-import java.lang.IllegalStateException
+import java.io.IOException
+import java.io.InputStream
 import java.util.*
 
 internal class Asn1TagParseException(message : String) : IllegalStateException(message)
@@ -68,6 +69,49 @@ constructor(objects: Array<Any>) {
             return if (x > 0) x.toLong() else Math.pow(2.0, 32.0).toLong() + x
         }
 
+        fun parseLength(s: InputStream, start: Int, length: Int): Int {
+            var readPos = 0
+            if (readPos == length) {
+                throw RuntimeException()
+            }
+            // leggo il tag
+            val tagVal = ArrayList<Byte>()
+            var tag = s.read()
+            readPos++
+            tagVal.add(tag.toByte())
+            if (tag and 0x1f == 0x1f) { // è un tag a più bytes; proseguo finchè non trovo un bit 8 a 0
+                while (true) {
+                    if (readPos == length) {
+                        throw RuntimeException()
+                    }
+                    tag = s.read()
+                    readPos++
+                    tagVal.add(tag.toByte())
+                    if (tag and 0x80 != 0x80) { // è l'ultimo byte del tag
+                        break
+                    }
+                }
+            }
+            // leggo la lunghezza
+            if (readPos == length) {
+                throw RuntimeException()
+            }
+            var len = s.read()
+            readPos++
+            if (len > 0x80) {
+                val lenlen = len - 0x80
+                len = 0
+                for (i in 0 until lenlen) {
+                    if (readPos == length) {
+                        throw RuntimeException()
+                    }
+                    len = (len shl 8 or s.read())
+                    readPos++
+                }
+            }
+            return readPos + len
+        }
+
         @Throws(Exception::class)
         fun parse(asn: ByteArrayInputStream, start: Long, length: Long, reparse: Boolean): Asn1Tag? {
             iterazione++
@@ -107,8 +151,8 @@ constructor(objects: Array<Any>) {
                 }
             }
             val size = readPos + len
-            //D if (size > length)
-            //    throw Asn1TagParseException("ASN1 non valido")
+            if (size > length)
+                throw Asn1TagParseException("ASN1 non valido")
             if (tagVal.size == 1 && tagVal[0].toInt() == 0 && len == 0L) {
                 return null
             }

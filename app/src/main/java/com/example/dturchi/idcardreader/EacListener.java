@@ -30,9 +30,9 @@ public class EacListener implements Runnable {
 			eac = new Eac(isoDep);//istanza della class di logica
 			eac.init();//scambio di chiavi
 			eac.readDgs();//lettura dei datagroups
-			eac.parseDg1();//parsing datagroup 1
-			eac.parseDg11();//parsing datagroup 11
-			eac.parseDg2();//parsing datagroup 2
+			//eac.parseDg1();//parsing datagroup 1 - prende la stringa MRZ
+			eac.parseDg11();//parsing datagroup 11 - prende i dati personali dell'utente
+			//eac.parseDg2();//parsing datagroup 2 - prende la foto
 			isoDep.close();//si chiude la connessione IsoDep
 		} catch(IOException excp) {
 			excp.printStackTrace();

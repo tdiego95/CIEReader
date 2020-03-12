@@ -21,8 +21,7 @@ public class AppUtil {
 		return val;
 	}
 
-	public  byte[] PadInt(byte[] value, int size)throws Exception
-	{
+	public  byte[] PadInt(byte[] value, int size)throws Exception {
 		byte[] sz =  getRight(value,size);
 		if (sz.length < size)
 			return appendByteArray(fill(size - sz.length,(byte) 0x00),sz);
@@ -37,11 +36,11 @@ public class AppUtil {
 		return data;
 	}
 
-	public static  int unsignedToBytes(byte b)throws Exception {
+	public static int unsignedToBytes(byte b)throws Exception {
 		return b & 0xFF;
 	}
 
-	public static  byte unsignedToBytes(int b)throws Exception {
+	public static byte unsignedToBytes(int b)throws Exception {
 		return (byte) (b & 0xFF);
 	}
 
@@ -66,18 +65,17 @@ public class AppUtil {
 
 	public static byte[] asn1Tag(byte[] array,int tag) throws Exception {
 
-		byte[] _tag=  tagToByte(tag);//1
+		byte[] _tag = tagToByte(tag);//1
 
-		byte[] _len=lenToBytes(array.length);//2
+		byte[] _len = lenToBytes(array.length);//2
 
-		byte[] data=new byte[_tag.length+_len.length+array.length];//131
+		byte[] data = new byte[_tag.length+_len.length+array.length];//131
 
 		System.arraycopy(_tag,0,data,0,_tag.length);
 		System.arraycopy(_len,0,data,_tag.length,_len.length);
 		System.arraycopy(array,0,data,_tag.length+_len.length,array.length);
 		return data;
 	}
-
 
 	public static byte[] tagToByte(int value) throws Exception {
 		if (value<=0xff) {
@@ -113,9 +111,10 @@ public class AppUtil {
 		}
 	}
 
-	public static void getStringFromByteArray(byte[] array)throws Exception {
+	public static String getStringFromByteArray(byte[] array)throws Exception {
 		String str = new String(array, StandardCharsets.UTF_8);
-		System.out.println(str);
+		//Si per forzaSystem.out.println(str);
+		return str;
 	}
 
 	public static byte[] getSub(byte[] array, int start,int num)throws Exception {
@@ -232,7 +231,7 @@ public class AppUtil {
 		return (byte)('0' + tot);
 	}
 
-	public static  String bytesToHex (byte[] bytes) throws Exception {
+	public static String bytesToHex (byte[] bytes) throws Exception {
 		StringBuilder sb = new StringBuilder(bytes.length * 2);
 		for (int i=0; i< bytes.length; i++) {
 			sb.append(String.format("%02x", bytes[i]));
