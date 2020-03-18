@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "987011467279",
+    "firebase_url": "https://mrzreader-c02ae.firebaseio.com",
+    "project_id": "mrzreader-c02ae",
+    "storage_bucket": "mrzreader-c02ae.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:987011467279:android:d031716d2e433e6c2b3b7a",
+        "android_client_info": {
+          "package_name": "com.dturchi.idcardreader"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "987011467279-e48n5chb5jcublt5pjtc0fhfn7okg5iu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVBatGWBcO_0lbSDyC7Zn4vfGuLwz2VZo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "987011467279-e48n5chb5jcublt5pjtc0fhfn7okg5iu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
