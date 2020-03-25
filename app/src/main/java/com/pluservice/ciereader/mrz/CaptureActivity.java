@@ -68,7 +68,9 @@ import com.googlecode.tesseract.android.TessBaseAPI;
 import com.pluservice.ciereader.camera.CameraManager;
 import com.pluservice.ciereader.camera.ShutterButton;
 
-import org.jmrtd.lds.icao.MRZInfo;
+import org.jmrtd.lds.MRZInfo;
+
+//import org.jmrtd.lds.icao.MRZInfo;
 
 /**
  * This activity opens the camera and does the actual scanning on a background thread. It draws a
@@ -380,13 +382,11 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case PERMISSIONS_REQUEST_CAMERA: {
                 // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Permission granted", Toast.LENGTH_LONG).show();
 
                 } else {

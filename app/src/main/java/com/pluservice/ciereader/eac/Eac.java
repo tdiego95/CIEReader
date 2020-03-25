@@ -1,13 +1,29 @@
 package com.pluservice.ciereader.eac;
 
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.nfc.tech.IsoDep;
 import android.util.Log;
 
-import org.jmrtd.lds.icao.MRZInfo;
+import com.gemalto.jp2.JP2Decoder;
+
+import net.sf.scuba.smartcards.CardFileInputStream;
+import net.sf.scuba.smartcards.CardService;
+
+import org.jmrtd.BACKey;
+import org.jmrtd.BACKeySpec;
+import org.jmrtd.PassportService;
+import org.jmrtd.lds.DG2File;
+import org.jmrtd.lds.FaceImageInfo;
+import org.jmrtd.lds.FaceInfo;
+import org.jmrtd.lds.MRZInfo;
+import org.jmrtd.lds.LDS;
 
 import java.io.ByteArrayInputStream;
-import java.lang.reflect.Method;
+import java.io.DataInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +36,7 @@ public class Eac {
 	
 	private IsoDep isoDep = null;
 	private MRZInfo mrz = null;
+	private Context context = null;
 	static byte[] kSessEnc = null;
 	static byte[] kSessMac = null;
 	static byte[] seq = null;
@@ -32,15 +49,23 @@ public class Eac {
 	private static final String TAG = "m.recupero";
 
 	//costruttore
-	public Eac(IsoDep isoDep, MRZInfo mrz){
+	public Eac(IsoDep isoDep, MRZInfo mrz, Context context){
 		this.isoDep = isoDep;
 		this.mrz = mrz;
+		this.context = context;
+	}
+	
+	private void sendUpdateToActivity(String info) {
+		Intent intent = new Intent();
+		intent.setAction("UPDATE_INFO");
+		intent.putExtra("update_info", info);
+		context.sendBroadcast(intent);
 	}
 
 	//metodo iniziale per lo scambio delle chiavi di sessione
 	public void init() throws Exception {
 		
-		if(isoDep == null || mrz == null) return;
+		if(isoDep == null || mrz == null || context == null) return;
 		
 		byte[] apduCmd = AppUtil.hexStringToByteArray("00A4040C07A0000002471001"); //select di controllo
 		ApduResponse res = new ApduResponse(isoDep.transceive(apduCmd));
@@ -48,6 +73,7 @@ public class Eac {
 		Log.i(TAG,"risposta full: " + AppUtil.bytesToHex(res.getResponse()));
 		if(res.getSwHex().equals("9000")) {
 			Log.i(TAG,"INIT BAC AUTHENTICATION:");
+			sendUpdateToActivity("Inizio autenticazione BAC");
             // init BAC auth
 			byte challenge[] = AppUtil.hexStringToByteArray("0084000008");
 			ApduResponse apduRes = new ApduResponse(isoDep.transceive(challenge));
@@ -90,6 +116,7 @@ public class Eac {
 				Log.i(TAG,"Errore sulla mutua auth BAC " + respMutaAuth.getSwHex());
                 //Progressione.testoErrore +=  "Errore durante la procedura di autenticazione BAC! Ripetere la scansione. ";
                 //Progressione.erroreBloccante = true;
+				sendUpdateToActivity("-- ERRORE AUTENTICAZIONE. I DATI SONO ERRATI. RISCANSIONARE IL CODICE MRZ --");
                 throw new Exception("Errore durante la procedura di autenticazione BAC! Ripetere la scansione. " +  respMutaAuth.getSwHex());
 			}
 
@@ -112,6 +139,7 @@ public class Eac {
 			byte[] tmp2 = AppUtil.getSub(decResp, 12, 4);
 			seq = AppUtil.appendByteArray(tmp,tmp2);
 			Log.i(TAG,"END BAC AUTHENTICATION:");
+			sendUpdateToActivity("Autenticazione BAC completata");
 		} else {
 			Log.i(TAG,"protocolla SAC");
 		}
@@ -120,6 +148,7 @@ public class Eac {
 	//recupero la struttura dei dg, la conservo dentro una mappa
 	public void readDgs()throws Exception {
 
+		sendUpdateToActivity("Lettura data groups in corso");
 		Log.i(TAG, "leggo i dg");
 		mappaDg = new HashMap<Integer, byte[]>();
 		byte[] efCom = leggiDg(30);
@@ -153,13 +182,16 @@ public class Eac {
 			if(!mappaDg.containsKey(new Integer(29)))
 				mappaDg.put(new Integer(29), leggiDg(29));
 		}
-    }
-
-    public void parseDg1()throws Exception {
-		parseDg(new Integer(1));
+		
+		sendUpdateToActivity("Lettura data groups completata");
 	}
 
-	public UserInfo parseDg11()throws Exception {
+    public void parseDg1() throws Exception {
+		//D IL DG1 TORNA L'MRZ, UTILIZZARE IN CASO DI BISOGNO ESTRAZIONE SESSO E NAZIONALITA
+	}
+
+	public UserInfo parseDg11() throws Exception {
+		sendUpdateToActivity("Inizio lettura dati personali");
 		if(mappaDg.containsKey(new Integer(11))) {
 			byte[] data = leggiDg(new Integer(11));
 			Asn1Tag tag = Asn1Tag.Companion.parse(data, false);
@@ -170,33 +202,63 @@ public class Eac {
 			userInfo.setBirthDate(AppUtil.getStringFromByteArray(tag.child(3).getData()));
 			userInfo.setBirthPlace(AppUtil.getStringFromByteArray(tag.child(4).getData()));
 			userInfo.setResidence(AppUtil.getStringFromByteArray(tag.child(5).getData()));
+			sendUpdateToActivity("Lettura dati personali completata con successo");
 			return userInfo;
-		}
-		else
+		} else {
+			sendUpdateToActivity("-- ERRORE LETTURA DATI PERSONALI --");
 			return null;
+		}
 	}
 
-    public void parseDg2() throws Exception {
-		parseDg(new Integer(2));
-	}
-
-	//metodo per il parsing del dg
-	//numDg: il numero del datagroup da fare il parsing
-	public void parseDg(int numDg) throws Exception{
-		Log.i(TAG,"parse il dg: " + numDg);
-		//progress.setProgress(50, "Parsing DG"+ numDg);
-		Class tipo = byte[].class;
-		byte[] argomenti  = new byte[1];
-		argomenti = mappaDg.get(new Integer(numDg));
-
-		if(argomenti == null)
-			throw new Exception("Errore durante la procedura di PARSING DG:" + numDg);
-
-		Object classe = Class.forName("it.ipzs.nfccardreader.beanAndUtils.Dg" + numDg).newInstance();
-		Method m = classe.getClass().getDeclaredMethod("parse", tipo);
-		Object obj = m.invoke(classe, argomenti);
-        boolean result = Boolean.parseBoolean(obj.toString());
-        Log.i(TAG,"terminato il metodo: " + classe.getClass().getCanonicalName() + " con result: " + result);
+    public Bitmap parseDg2() throws Exception {
+	
+		sendUpdateToActivity("Inizio lettura foto in corso");
+		Bitmap bitmap = null;
+		
+		try {
+			BACKeySpec bacKey = new BACKey(mrz.getDocumentNumber(), mrz.getDateOfBirth(), mrz.getDateOfExpiry());
+			DG2File dg2File;
+			
+			CardService cardService = CardService.getInstance(isoDep);
+			cardService.open();
+			
+			PassportService service = new PassportService(cardService);
+			service.open();
+			
+			service.sendSelectApplet(true);
+			
+			service.doBAC(bacKey);
+			
+			LDS lds = new LDS();
+			
+			CardFileInputStream dg2In = service.getInputStream(PassportService.EF_DG2);
+			lds.add(PassportService.EF_DG2, dg2In, dg2In.getLength());
+			dg2File = lds.getDG2File();
+			
+			List<FaceImageInfo> allFaceImageInfos = new ArrayList<>();
+			List<FaceInfo> faceInfos = dg2File.getFaceInfos();
+			for (FaceInfo faceInfo : faceInfos) {
+				allFaceImageInfos.addAll(faceInfo.getFaceImageInfos());
+			}
+			
+			if (!allFaceImageInfos.isEmpty()) {
+				
+				FaceImageInfo faceImageInfo = allFaceImageInfos.iterator().next();
+				int imageLength = faceImageInfo.getImageLength();
+				DataInputStream dataInputStream = new DataInputStream(faceImageInfo.getImageInputStream());
+				byte[] buffer = new byte[imageLength];
+				dataInputStream.readFully(buffer, 0, imageLength);
+				
+				bitmap = new JP2Decoder(buffer).decode();
+				
+				sendUpdateToActivity("Lettura foto completata con successo");
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			sendUpdateToActivity("-- ERRORE LETTURA FOTO --");
+		}
+	
+		return bitmap;
 	}
 	
 	//metodo per la lettura dei dg
@@ -205,7 +267,6 @@ public class Eac {
 		Log.i(TAG, "Leggo il dg: " + numDg);
 
 		byte[] data = new byte[0];
-		byte[] resp = null;
 		byte somma = (byte) ((byte) numDg + (byte) 0x80);//-126
 		String hex = AppUtil.bytesToHex(new byte[]{somma});//82
 		byte[] appo = AppUtil.hexStringToByteArray("0cb0" + hex + "0006");//. ToString("X2") + " 00 06")
@@ -213,7 +274,6 @@ public class Eac {
 		ApduResponse respDg = new ApduResponse(isoDep.transceive(apdu));
 		if (!respDg.getSwHex().equals("9000")) {
 			Log.i(TAG, "Errore nella selezione del DG" + numDg + " SW: " + respDg.getSwHex());
-			//Progressione.testoErrore +=  "Errore nella selezione del DG:" + numDg;
 			throw new Exception("Errore nella selezione del DG" + numDg + " SW: " + respDg.getSwHex());
 		}
 
@@ -227,8 +287,6 @@ public class Eac {
 
 			byte[] apduDg = sm(kSessEnc, kSessMac, appo2);
 			ApduResponse respDg2 = new ApduResponse(isoDep.transceive(apduDg));// ' read DG
-			//int readLen = Math.Min(512, maxLen - data.Size);
-			//sw = sc.Transmit(LongSM(KSessEnc, KSessMac, new ByteArray("0c b0 ").Append((byte)(((byte)(data.Size>>8)) & (byte)0x7f)).Append((byte)(data.Size & 0xff)),null,new byte[] { (byte)(readLen >> 8), (byte)(readLen & 0xff) }, seq), ref resp);// ' read DG
 			if (!respDg2.getSwHex().equals("9000")) {
 				Log.i(TAG, "Errore nella lettura del DG" + numDg + " codice errore: " + respDg2.getSwHex());
 				throw new Exception("Errore nella lettura del DG" + numDg + " codice errore: " + respDg2.getSwHex());
@@ -237,8 +295,8 @@ public class Eac {
 
 			data = AppUtil.appendByteArray(data, chunk);
 		}
-
-		//Log.d("ASD", "data byte in stringa : " + data);
+		
+		/* LOG */
 		String x = "";
 		for(int i=0; i < data.length; i++) {
 			x += " " + data[i];
