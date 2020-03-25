@@ -79,8 +79,7 @@ import org.jmrtd.lds.MRZInfo;
  * <p>
  * The code for this class was adapted from the ZXing project: http://code.google.com/p/zxing/
  */
-public final class CaptureActivity extends Activity implements SurfaceHolder.Callback,
-        ShutterButton.OnShutterButtonListener {
+public final class CaptureActivity extends Activity implements SurfaceHolder.Callback, ShutterButton.OnShutterButtonListener {
 
     private static final String TAG = CaptureActivity.class.getSimpleName();
 
@@ -188,8 +187,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     private static final int OPTIONS_SHARE_RECOGNIZED_TEXT_ID = Menu.FIRST + 2;
     private static final int OPTIONS_SHARE_TRANSLATED_TEXT_ID = Menu.FIRST + 3;
 
-    private static final int PERMISSIONS_REQUEST_CAMERA = 1;
-
     private CameraManager cameraManager;
     private CaptureActivityHandler handler;
     private ViewfinderView viewfinderView;
@@ -243,8 +240,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         super.onCreate(icicle);
 
         checkFirstLaunch();
-
-        this.requestPermission();
 
         if (isFirstLaunch) {
             setDefaultPreferences();
@@ -367,41 +362,9 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         isEngineReady = false;
     }
 
-    private void requestPermission() {
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.CAMERA)) {
-            } else {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.CAMERA},
-                        PERMISSIONS_REQUEST_CAMERA);
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case PERMISSIONS_REQUEST_CAMERA: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Permission granted", Toast.LENGTH_LONG).show();
-
-                } else {
-                    Toast.makeText(this, "Permission not granted", Toast.LENGTH_LONG).show();
-                    setResult(RESULT_CANCELED);
-                    finish();
-                }
-            }
-        }
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
-        this.requestPermission();
 
         resetStatusView();
 

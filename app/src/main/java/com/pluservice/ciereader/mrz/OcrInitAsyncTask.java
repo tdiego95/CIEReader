@@ -72,12 +72,12 @@ final class OcrInitAsyncTask extends AsyncTask<String, String, Boolean> {
 	@Override
 	protected void onPreExecute() {
 		super.onPreExecute();
-		dialog.setTitle("Please wait");
+		/*D dialog.setTitle("Please wait");
 		dialog.setMessage("Checking for data installation...");
 		dialog.setIndeterminate(false);
 		dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 		dialog.setCancelable(false);
-		dialog.show();
+		dialog.show();*/
 		activity.setButtonVisibility(false);
 	}
 
@@ -174,7 +174,7 @@ final class OcrInitAsyncTask extends AsyncTask<String, String, Boolean> {
 		if (result) {
 			// Restart recognition
 			activity.resumeOCR();
-			activity.showLanguageName();
+			//activity.showLanguageName();
 		} else {
 			activity.showErrorMessage("Error", "Network is unreachable - cannot download language data. "
 					+ "Please enable network access and restart this app.");

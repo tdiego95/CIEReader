@@ -1,11 +1,12 @@
 package com.pluservice.ciereader.ui
 
+import android.Manifest
 import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.nfc.NfcAdapter
 import android.nfc.NfcAdapter.ReaderCallback
@@ -17,6 +18,8 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.pluservice.ciereader.R
 import com.pluservice.ciereader.eac.EacListener
 import com.pluservice.ciereader.eac.UserInfo
@@ -24,14 +27,15 @@ import com.pluservice.ciereader.mrz.CaptureActivity
 import com.pluservice.ciereader.mrz.CaptureActivity.MRZ_RESULT
 import com.pluservice.ciereader.mrz.PreferencesActivity
 import kotlinx.android.synthetic.main.activity_main.*
-import org.spongycastle.jce.provider.BouncyCastleProvider
 import org.jmrtd.lds.MRZInfo
+import org.spongycastle.jce.provider.BouncyCastleProvider
 import java.security.Security
 
 //import org.jmrtd.lds.icao.MRZInfo
 
 class MainActivity : AppCompatActivity(), ReaderCallback {
-    
+	
+	private val REQUEST_PERMISSION_CAMERA = 1
     private var REQUEST_SCAN_MRZ = 99
     private var USER_INFO_FILTER = "USER_INFO"
     private var USER_IMAGE_FILTER = "USER_IMAGE"
@@ -78,6 +82,9 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
         
         Security.insertProviderAt(BouncyCastleProvider(), 1)
         
+		btnScanMrz.setOnClickListener { openScanMrz() }
+		btnSettings.setOnClickListener { startActivity(Intent(this, PreferencesActivity::class.java)) }
+		
         initializeNFC()
     
         registerReceiver()
@@ -134,15 +141,19 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
             ex.printStackTrace()
         }
     }
-
-    fun OpenScanMRZ(view: View) {
-        txtLoadingInfo.text = ""
-        imgUser.visibility = View.GONE
-        startActivityForResult(Intent(this, CaptureActivity::class.java), REQUEST_SCAN_MRZ)
-    }
-    
-    fun OpenPreferences(view: View) {
-        startActivity(Intent(this, PreferencesActivity::class.java))
+	
+    private fun openScanMrz() {
+		if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+			requestPermission()
+		} else {
+			txtLoadingInfo.text = ""
+			txtLoadingInfo.visibility = View.GONE
+			txtNfcReady.visibility = View.GONE
+			txtMrzInfo.text = "Dati MRZ :"
+			txtUserInfo.text = "Dati utente :"
+			imgUser.visibility = View.GONE
+			startActivityForResult(Intent(this, CaptureActivity::class.java), REQUEST_SCAN_MRZ)
+		}
     }
     
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
@@ -153,8 +164,6 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
             mrzInfo = MRZInfo(result.toString())
             if(mrzInfo != null) {
                 txtMrzInfo.text = "Dati MRZ :\n" + mrzInfo!!.primaryIdentifier + "\n" + mrzInfo!!.secondaryIdentifier + "\n" + mrzInfo!!.documentNumber + "\n" + mrzInfo!!.dateOfBirth + "\n" + mrzInfo!!.dateOfExpiry
-                txtUserInfo.text = "Dati utente : "
-                txtLoadingInfo.visibility = View.GONE
                 txtNfcReady.visibility = View.VISIBLE
                 startNfcListening()
             } else {
@@ -162,4 +171,28 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
             }
         }
     }
+	
+	private fun requestPermission() {
+		if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+			ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_PERMISSION_CAMERA)
+		}
+	}
+	
+	override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+		super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+		
+		when (requestCode) {
+			REQUEST_PERMISSION_CAMERA -> {
+				// If request is cancelled, the result arrays are empty.
+				if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+					Toast.makeText(this, "Permission granted", Toast.LENGTH_LONG).show()
+					openScanMrz()
+				} else {
+					Toast.makeText(this, "Permission not granted", Toast.LENGTH_LONG).show()
+					setResult(Activity.RESULT_CANCELED)
+					finish()
+				}
+			}
+		}
+	}
 }
