@@ -3,7 +3,6 @@ package com.pluservice.ciereader.eac;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.nfc.tech.IsoDep;
 import android.util.Log;
 
@@ -23,7 +22,6 @@ import org.jmrtd.lds.LDS;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;

@@ -20,7 +20,6 @@ package com.pluservice.ciereader.mrz;
 import java.io.File;
 import java.io.IOException;
 
-import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -28,8 +27,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
@@ -59,9 +56,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import com.pluservice.ciereader.R;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
@@ -69,8 +63,6 @@ import com.pluservice.ciereader.camera.CameraManager;
 import com.pluservice.ciereader.camera.ShutterButton;
 
 import org.jmrtd.lds.MRZInfo;
-
-//import org.jmrtd.lds.icao.MRZInfo;
 
 /**
  * This activity opens the camera and does the actual scanning on a background thread. It draws a
@@ -279,7 +271,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         viewfinderView.setCameraManager(cameraManager);
 
         // Set listener to change the size of the viewfinder rectangle.
-        viewfinderView.setOnTouchListener(new View.OnTouchListener() {
+        /*viewfinderView.setOnTouchListener(new View.OnTouchListener() {
             int lastX = -1;
             int lastY = -1;
 
@@ -357,7 +349,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
                 }
                 return false;
             }
-        });
+        });*/
 
         isEngineReady = false;
     }

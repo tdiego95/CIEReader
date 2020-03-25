@@ -182,7 +182,12 @@ public final class CameraManager {
         // Called early, before init even finished
         return null;
       }
-      int width = screenResolution.x;
+      
+      //D CUSTOM OFFSET
+      int xOffset = 650;
+      int yOffset = 200;
+      
+      int width = screenResolution.x - xOffset;
       if (width < MIN_FRAME_WIDTH) {
         width = MIN_FRAME_WIDTH;
       }
@@ -191,10 +196,22 @@ public final class CameraManager {
         height = MIN_FRAME_HEIGHT;
       }
       int leftOffset = (screenResolution.x - width) / 2;
-      int topOffset = (screenResolution.y - height) / 2;
+      int topOffset = (screenResolution.y - height) - yOffset;
       framingRect = new Rect(leftOffset, topOffset, leftOffset + width, topOffset + height);
     }
     return framingRect;
+  }
+  
+  //This another frame to draw just to let the user understand which should be the card orientation in front of the camera
+  public synchronized Rect getSecondaryFramingRect() {
+    Rect secondaryFrame = null;
+    
+    if(framingRect != null) {
+      int offsetHeight = 800;
+      secondaryFrame = new Rect(framingRect.left, framingRect.top, framingRect.left + framingRect.width(), framingRect.top + framingRect.height() - offsetHeight);
+    }
+    
+    return secondaryFrame;
   }
 
   /**

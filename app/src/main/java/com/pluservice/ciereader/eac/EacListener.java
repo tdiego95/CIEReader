@@ -3,12 +3,10 @@ package com.pluservice.ciereader.eac;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 import android.nfc.tech.IsoDep;
 import android.util.Log;
 
 import org.jmrtd.lds.MRZInfo;
-//import org.jmrtd.lds.icao.MRZInfo;
 
 import java.io.IOException;
 

@@ -31,8 +31,6 @@ import org.jmrtd.lds.MRZInfo
 import org.spongycastle.jce.provider.BouncyCastleProvider
 import java.security.Security
 
-//import org.jmrtd.lds.icao.MRZInfo
-
 class MainActivity : AppCompatActivity(), ReaderCallback {
 	
 	private val REQUEST_PERMISSION_CAMERA = 1

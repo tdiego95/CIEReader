@@ -24,10 +24,7 @@ import com.pluservice.ciereader.camera.CameraManager;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Paint.Align;
-import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.Paint.Style;
 import android.util.AttributeSet;
@@ -121,33 +118,37 @@ public final class ViewfinderView extends View {
   @Override
   public void onDraw(Canvas canvas) {
     
-    Rect frame = cameraManager.getFramingRect();
-    if (frame == null) {
+    Rect mainFrame = cameraManager.getFramingRect();
+    if (mainFrame == null) {
       return;
     }
+    
     int width = canvas.getWidth();
     int height = canvas.getHeight();
     
     // Draw the exterior (i.e. outside the framing rect) darkened
     paint.setColor(maskColor);
-    canvas.drawRect(0, 0, width, frame.top, paint);
-    canvas.drawRect(0, frame.top, frame.left, frame.bottom + 1, paint);
-    canvas.drawRect(frame.right + 1, frame.top, width, frame.bottom + 1, paint);
-    canvas.drawRect(0, frame.bottom + 1, width, height, paint);
+    canvas.drawRect(0, 0, width, mainFrame.top, paint);
+    canvas.drawRect(0, mainFrame.top, mainFrame.left, mainFrame.bottom + 1, paint);
+    canvas.drawRect(mainFrame.right + 1, mainFrame.top, width, mainFrame.bottom + 1, paint);
+    canvas.drawRect(0, mainFrame.bottom + 1, width, height, paint);
+    
+    Rect secondaryFrame = cameraManager.getSecondaryFramingRect();
+    //canvas.drawRect(0, 0, width, secondaryFrame.top, paint);
+    //canvas.drawRect(0, secondaryFrame.top, secondaryFrame.left, secondaryFrame.bottom + 1, paint);
+    //canvas.drawRect(secondaryFrame.right + 1, secondaryFrame.top, width, secondaryFrame.bottom + 1, paint);
+    //canvas.drawRect(0, secondaryFrame.bottom + 1, width, height, paint);
     
     // If we have an OCR result, overlay its information on the viewfinder.
-    if (resultText != null) {
-  
-      if (true) return;
+    /*if (resultText != null) {
   
       // Only draw text/bounding boxes on viewfinder if it hasn't been resized since the OCR was requested.
       Point bitmapSize = resultText.getBitmapDimensions();
       previewFrame = cameraManager.getFramingRectInPreview();
       if (bitmapSize.x == previewFrame.width() && bitmapSize.y == previewFrame.height()) {
         
-        
-        float scaleX = frame.width() / (float) previewFrame.width();
-        float scaleY = frame.height() / (float) previewFrame.height();
+        float scaleX = mainFrame.width() / (float) previewFrame.width();
+        float scaleY = mainFrame.height() / (float) previewFrame.height();
         
         if (DRAW_REGION_BOXES) {
           regionBoundingBoxes = resultText.getRegionBoundingBoxes();
@@ -157,10 +158,10 @@ public final class ViewfinderView extends View {
             paint.setStyle(Style.STROKE);
             paint.setStrokeWidth(1);
             rect = regionBoundingBoxes.get(i);
-            canvas.drawRect(frame.left + rect.left * scaleX,
-                    frame.top + rect.top * scaleY,
-                    frame.left + rect.right * scaleX,
-                    frame.top + rect.bottom * scaleY, paint);
+            canvas.drawRect(mainFrame.left + rect.left * scaleX,
+                    mainFrame.top + rect.top * scaleY,
+                    mainFrame.left + rect.right * scaleX,
+                    mainFrame.top + rect.bottom * scaleY, paint);
           }
         }
         
@@ -173,10 +174,10 @@ public final class ViewfinderView extends View {
           paint.setStrokeWidth(1);
           for (int i = 0; i < textlineBoundingBoxes.size(); i++) {
             rect = textlineBoundingBoxes.get(i);
-            canvas.drawRect(frame.left + rect.left * scaleX,
-                    frame.top + rect.top * scaleY,
-                    frame.left + rect.right * scaleX,
-                    frame.top + rect.bottom * scaleY, paint);
+            canvas.drawRect(mainFrame.left + rect.left * scaleX,
+                    mainFrame.top + rect.top * scaleY,
+                    mainFrame.left + rect.right * scaleX,
+                    mainFrame.top + rect.bottom * scaleY, paint);
           }
         }
         
@@ -188,10 +189,10 @@ public final class ViewfinderView extends View {
           paint.setStrokeWidth(1);
           for (int i = 0; i < stripBoundingBoxes.size(); i++) {
             rect = stripBoundingBoxes.get(i);
-            canvas.drawRect(frame.left + rect.left * scaleX,
-                    frame.top + rect.top * scaleY,
-                    frame.left + rect.right * scaleX,
-                    frame.top + rect.bottom * scaleY, paint);
+            canvas.drawRect(mainFrame.left + rect.left * scaleX,
+                    mainFrame.top + rect.top * scaleY,
+                    mainFrame.left + rect.right * scaleX,
+                    mainFrame.top + rect.bottom * scaleY, paint);
           }
         }
         
@@ -214,10 +215,10 @@ public final class ViewfinderView extends View {
             // Draw a bounding box around the word
             rect = wordBoundingBoxes.get(i);
             canvas.drawRect(
-                    frame.left + rect.left * scaleX,
-                    frame.top + rect.top * scaleY,
-                    frame.left + rect.right * scaleX,
-                    frame.top + rect.bottom * scaleY, paint);
+                    mainFrame.left + rect.left * scaleX,
+                    mainFrame.top + rect.top * scaleY,
+                    mainFrame.left + rect.right * scaleX,
+                    mainFrame.top + rect.bottom * scaleY, paint);
           }
         }
         
@@ -246,10 +247,10 @@ public final class ViewfinderView extends View {
               } else {
                 paint.setAlpha(255);
               }
-              canvas.drawRect(frame.left + rect.left * scaleX,
-                      frame.top + rect.top * scaleY,
-                      frame.left + rect.right * scaleX,
-                      frame.top + rect.bottom * scaleY, paint);
+              canvas.drawRect(mainFrame.left + rect.left * scaleX,
+                      mainFrame.top + rect.top * scaleY,
+                      mainFrame.left + rect.right * scaleX,
+                      mainFrame.top + rect.bottom * scaleY, paint);
               
               // Draw the word in black text
               paint.setColor(Color.BLACK);
@@ -283,33 +284,39 @@ public final class ViewfinderView extends View {
               float xscale = ((float) (rect.width())) / w;
               // set the scale for the text paint
               paint.setTextScaleX(xscale);
-              canvas.drawText(words[i], frame.left + rect.left * scaleX, frame.top + rect.bottom * scaleY - baseline, paint);
+              canvas.drawText(words[i], mainFrame.left + rect.left * scaleX, mainFrame.top + rect.bottom * scaleY - baseline, paint);
             }
             
           }
         }
       }
-      
-    }
+    }*/
+    
     // Draw a two pixel solid border inside the framing rect
     paint.setAlpha(0);
     paint.setStyle(Style.FILL);
     paint.setColor(frameColor);
-    canvas.drawRect(frame.left, frame.top, frame.right + 1, frame.top + 2, paint);
-    canvas.drawRect(frame.left, frame.top + 2, frame.left + 2, frame.bottom - 1, paint);
-    canvas.drawRect(frame.right - 1, frame.top, frame.right + 1, frame.bottom - 1, paint);
-    canvas.drawRect(frame.left, frame.bottom - 1, frame.right + 1, frame.bottom + 1, paint);
+    
+    canvas.drawRect(mainFrame.left, mainFrame.top, mainFrame.right + 1, mainFrame.top + 2, paint);
+    canvas.drawRect(mainFrame.left, mainFrame.top + 2, mainFrame.left + 2, mainFrame.bottom - 1, paint);
+    canvas.drawRect(mainFrame.right - 1, mainFrame.top, mainFrame.right + 1, mainFrame.bottom - 1, paint);
+    canvas.drawRect(mainFrame.left, mainFrame.bottom - 1, mainFrame.right + 1, mainFrame.bottom + 1, paint);
+  
+    canvas.drawRect(secondaryFrame.left, secondaryFrame.top, secondaryFrame.right + 1, secondaryFrame.top + 2, paint);
+    canvas.drawRect(secondaryFrame.left, secondaryFrame.top + 2, secondaryFrame.left + 2, secondaryFrame.bottom - 1, paint);
+    canvas.drawRect(secondaryFrame.right - 1, secondaryFrame.top, secondaryFrame.right + 1, secondaryFrame.bottom - 1, paint);
+    canvas.drawRect(secondaryFrame.left, secondaryFrame.bottom - 1, secondaryFrame.right + 1, secondaryFrame.bottom + 1, paint);
     
     // Draw the framing rect corner UI elements
-    paint.setColor(cornerColor);
-    canvas.drawRect(frame.left - 15, frame.top - 15, frame.left + 15, frame.top, paint);
-    canvas.drawRect(frame.left - 15, frame.top, frame.left, frame.top + 15, paint);
-    canvas.drawRect(frame.right - 15, frame.top - 15, frame.right + 15, frame.top, paint);
-    canvas.drawRect(frame.right, frame.top - 15, frame.right + 15, frame.top + 15, paint);
-    canvas.drawRect(frame.left - 15, frame.bottom, frame.left + 15, frame.bottom + 15, paint);
-    canvas.drawRect(frame.left - 15, frame.bottom - 15, frame.left, frame.bottom, paint);
-    canvas.drawRect(frame.right - 15, frame.bottom, frame.right + 15, frame.bottom + 15, paint);
-    canvas.drawRect(frame.right, frame.bottom - 15, frame.right + 15, frame.bottom + 15, paint);
+    /*paint.setColor(cornerColor);
+    canvas.drawRect(mainFrame.left - 15, mainFrame.top - 15, mainFrame.left + 15, mainFrame.top, paint);
+    canvas.drawRect(mainFrame.left - 15, mainFrame.top, mainFrame.left, mainFrame.top + 15, paint);
+    canvas.drawRect(mainFrame.right - 15, mainFrame.top - 15, mainFrame.right + 15, mainFrame.top, paint);
+    canvas.drawRect(mainFrame.right, mainFrame.top - 15, mainFrame.right + 15, mainFrame.top + 15, paint);
+    canvas.drawRect(mainFrame.left - 15, mainFrame.bottom, mainFrame.left + 15, mainFrame.bottom + 15, paint);
+    canvas.drawRect(mainFrame.left - 15, mainFrame.bottom - 15, mainFrame.left, mainFrame.bottom, paint);
+    canvas.drawRect(mainFrame.right - 15, mainFrame.bottom, mainFrame.right + 15, mainFrame.bottom + 15, paint);
+    canvas.drawRect(mainFrame.right, mainFrame.bottom - 15, mainFrame.right + 15, mainFrame.bottom + 15, paint);*/
   }
   
   public void drawViewfinder() {

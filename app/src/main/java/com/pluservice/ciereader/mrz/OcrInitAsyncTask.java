@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import android.app.ProgressDialog;
@@ -72,12 +71,12 @@ final class OcrInitAsyncTask extends AsyncTask<String, String, Boolean> {
 	@Override
 	protected void onPreExecute() {
 		super.onPreExecute();
-		/*D dialog.setTitle("Please wait");
+		dialog.setTitle("Please wait");
 		dialog.setMessage("Checking for data installation...");
 		dialog.setIndeterminate(false);
 		dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 		dialog.setCancelable(false);
-		dialog.show();*/
+		dialog.show();
 		activity.setButtonVisibility(false);
 	}
 

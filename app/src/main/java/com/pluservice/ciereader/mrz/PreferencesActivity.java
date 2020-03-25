@@ -26,7 +26,6 @@ import android.preference.PreferenceManager;
 
 import com.pluservice.ciereader.R;
 
-
 /**
  * Class to handle preferences that are saved across sessions of the app. Shows
  * a hierarchy of preferences to the user, organized into sections. These
