@@ -757,7 +757,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
         String result = ocrResult.getText();
         if (result != null && !"".equals(result)) {
-            result.replaceAll(" ", "");
+            result = result.replaceAll(" ", "");
             String[] textResultTmpArr = result.split("\n");
             result = "";
             for (int i = 0; i < textResultTmpArr.length; i++) {
@@ -768,10 +768,12 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
             
             result = result.replaceAll(" ", "");
             ocrResult.setText(result);
-            if (ocrResult.getMeanConfidence() >= 50 && textResultTmpArr.length >= 2 && textResultTmpArr.length <= 3) {
+            //meanConfidence è il grado di precisione stimato dalla codifica
+            if (ocrResult.getMeanConfidence() >= 65 && textResultTmpArr.length >= 2 && textResultTmpArr.length <= 3) {
                 try {
                     MRZInfo mrzInfo = new MRZInfo(result);
-                    if (mrzInfo.toString().equals(result)) {
+                    if (mrzInfo.toString().equals(result) && isValidMrz(mrzInfo)) {
+
                         Toast.makeText(this, mrzInfo.toString(), Toast.LENGTH_LONG).show();
                         Intent returnIntent = new Intent();
                         returnIntent.putExtra(MRZ_RESULT, mrzInfo);
@@ -816,6 +818,14 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
             statusViewBottom.setText("OCR: " + sourceLanguageReadable + " - Mean confidence: " +
                     meanConfidence.toString() + " - Time required: " + recognitionTimeRequired + " ms");
         }*/
+    }
+
+    private boolean isValidMrz(MRZInfo mrz) {
+        return  mrz.getDateOfBirth().matches("[0-9]+") &&
+                mrz.getDateOfExpiry().matches("[0-9]+") &&
+                mrz.getDocumentNumber().substring(0, 2).matches("[a-zA-Z]+") &&
+                mrz.getDocumentNumber().substring(2, 7).matches("[0-9]+") &&
+                mrz.getDocumentNumber().substring(7, 9).matches("[a-zA-Z]+");
     }
 
     /**

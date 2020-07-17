@@ -105,7 +105,7 @@ final class DecodeHandler extends Handler {
       return;
     }
     bitmap = source.renderCroppedGreyscaleBitmap();
-    Pix thresholdedImage = Binarize.otsuAdaptiveThreshold(ReadFile.readBitmap(bitmap));
+    Pix thresholdedImage = Binarize.otsuAdaptiveThreshold(ReadFile.readBytes8(source.getMatrix(), source.getWidth(), source.getHeight()));
     Log.e("OcrRecognizeAsyncTask", "thresholding completed. converting to bmp. size:" + bitmap.getWidth() + "x" + bitmap.getHeight());
     bitmap = WriteFile.writeBitmap(thresholdedImage);
 

@@ -182,9 +182,8 @@ public final class CameraManager {
         // Called early, before init even finished
         return null;
       }
-      
-      //D CUSTOM OFFSET
-      int xOffset = 650;
+
+      int xOffset = (int)(screenResolution.x * .20);
       int yOffset = 200;
       
       int width = screenResolution.x - xOffset;

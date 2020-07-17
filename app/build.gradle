@@ -28,7 +28,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     implementation 'org.jmrtd:jmrtd:0.5.5'
-    implementation 'com.rmtheis:tess-two:6.2.0'
+    implementation 'com.rmtheis:tess-two:9.1.0'
     implementation 'net.sf.scuba:scuba-sc-android:0.0.9'
     implementation 'com.madgag.spongycastle:prov:1.54.0.0'
 

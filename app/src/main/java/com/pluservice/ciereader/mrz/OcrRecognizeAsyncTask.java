@@ -113,8 +113,7 @@ final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
       iterator.begin();
       do {
           lastBoundingBox = iterator.getBoundingBox(PageIteratorLevel.RIL_SYMBOL);
-          Rect lastRectBox = new Rect(lastBoundingBox[0], lastBoundingBox[1],
-                  lastBoundingBox[2], lastBoundingBox[3]);
+          Rect lastRectBox = new Rect(lastBoundingBox[0], lastBoundingBox[1], lastBoundingBox[2], lastBoundingBox[3]);
           charBoxes.add(lastRectBox);
       } while (iterator.next(PageIteratorLevel.RIL_SYMBOL));
       iterator.delete();
