@@ -85,7 +85,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     /**
      * ISO 639-1 language code indicating the default target language for translation.
      */
-    public static final String DEFAULT_TARGET_LANGUAGE_CODE = "es";
+    public static final String DEFAULT_TARGET_LANGUAGE_CODE = "ita";
 
     /**
      * The default online machine translation service to use.
@@ -772,7 +772,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
             if (ocrResult.getMeanConfidence() >= 65 && textResultTmpArr.length >= 2 && textResultTmpArr.length <= 3) {
                 try {
                     MRZInfo mrzInfo = new MRZInfo(result);
-                    if (mrzInfo.toString().equals(result) && isValidMrz(mrzInfo)) {
+                    if (isValidMrz(mrzInfo)) {
 
                         Toast.makeText(this, mrzInfo.toString(), Toast.LENGTH_LONG).show();
                         Intent returnIntent = new Intent();
