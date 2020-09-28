@@ -11,6 +11,47 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <RadioGroup
+            android:id="@+id/radioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
+            android:checkedButton="@id/radioPACE">
+
+            <RadioButton
+                android:id="@+id/radioPACE"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PACE" />
+
+            <RadioButton
+                android:id="@+id/radioBAC"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BAC" />
+
+        </RadioGroup>
+
+        <EditText
+            android:id="@+id/inputCAN"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginEnd="15dp"
+            android:hint="Inserire CAN..." />
+
+        <Button
+            android:id="@+id/btnConfirmCAN"
+            android:layout_marginTop="15dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Confirm CAN" />
+
         <Button
             android:id="@+id/btnScanMrz"
             android:layout_marginTop="15dp"
@@ -18,16 +59,17 @@
             android:layout_marginEnd="15dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Start scan mrz" />
+            android:text="Start scan mrz"
+            android:visibility="gone" />
 
-        <Button
+        <!--<Button
             android:id="@+id/btnSettings"
             android:layout_marginTop="15dp"
             android:layout_marginStart="15dp"
             android:layout_marginEnd="15dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="SETTINGS" />
+            android:text="SETTINGS" />-->
 
         <TextView
             android:id="@+id/txtMrzInfo"

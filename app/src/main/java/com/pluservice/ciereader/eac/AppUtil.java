@@ -11,26 +11,25 @@ classe di utilità
 public class AppUtil {
 
 	public static int toUint(byte[] dataB) {
-		if(dataB == null)
+		if (dataB == null)
 			return 0;
 		int val = +0;
-		for (int i =0 ; i < dataB.length; i++)
-		{
+		for (int i = 0; i < dataB.length; i++) {
 			val = val << 8 | dataB[i];
 		}
 		return val;
 	}
 
-	public  byte[] PadInt(byte[] value, int size) {
-		byte[] sz =  getRight(value,size);
+	public byte[] PadInt(byte[] value, int size) {
+		byte[] sz = getRight(value, size);
 		if (sz.length < size)
-			return appendByteArray(fill(size - sz.length,(byte) 0x00),sz);
+			return appendByteArray(fill(size - sz.length, (byte) 0x00), sz);
 		else
 			return sz;
 	}
 
 	public static byte[] fill(int size, byte content) {
-		byte[] data=new byte[size];
+		byte[] data = new byte[size];
 		for (int i = 0; i < size; i++)
 			data[i] = content;
 		return data;
@@ -45,67 +44,60 @@ public class AppUtil {
 	}
 
 	static byte[] lenToBytes(int value) throws Exception {
-		if (value<0x80) {
-			return new byte[] {(byte)value};
+		if (value < 0x80) {
+			return new byte[]{(byte) value};
 		}
-		if (value<=0xff) {
-			return new byte[] {(byte)0x81,(byte)value};
-		}
-		else if (value<=0xffff) {
-			return new byte[] {(byte)0x82,(byte)(value >> 8),(byte)(value & 0xff)};
-		}
-		else if (value<=0xffffff) {
-			return new byte[] {(byte)0x83,(byte)(value>> 16),(byte)((value>> 8) & 0xff),(byte)(value & 0xff)};
-		}
-		else if (value<=0xffffffff) {
-			return new byte[] {(byte)0x84,(byte)(value>>24),(byte)((value>> 16) & 0xff),(byte)((value>> 8) & 0xff),(byte)(value & 0xff)};
+		if (value <= 0xff) {
+			return new byte[]{(byte) 0x81, (byte) value};
+		} else if (value <= 0xffff) {
+			return new byte[]{(byte) 0x82, (byte) (value >> 8), (byte) (value & 0xff)};
+		} else if (value <= 0xffffff) {
+			return new byte[]{(byte) 0x83, (byte) (value >> 16), (byte) ((value >> 8) & 0xff), (byte) (value & 0xff)};
+		} else if (value <= 0xffffffff) {
+			return new byte[]{(byte) 0x84, (byte) (value >> 24), (byte) ((value >> 16) & 0xff), (byte) ((value >> 8) & 0xff), (byte) (value & 0xff)};
 		}
 		throw new Exception("dati troppo lunghi");
 	}
 
-	public static byte[] asn1Tag(byte[] array,int tag) throws Exception {
+	public static byte[] asn1Tag(byte[] array, int tag) throws Exception {
 
 		byte[] _tag = tagToByte(tag);//1
 
 		byte[] _len = lenToBytes(array.length);//2
 
-		byte[] data = new byte[_tag.length+_len.length+array.length];//131
+		byte[] data = new byte[_tag.length + _len.length + array.length];//131
 
-		System.arraycopy(_tag,0,data,0,_tag.length);
-		System.arraycopy(_len,0,data,_tag.length,_len.length);
-		System.arraycopy(array,0,data,_tag.length+_len.length,array.length);
+		System.arraycopy(_tag, 0, data, 0, _tag.length);
+		System.arraycopy(_len, 0, data, _tag.length, _len.length);
+		System.arraycopy(array, 0, data, _tag.length + _len.length, array.length);
 		return data;
 	}
 
 	public static byte[] tagToByte(int value) throws Exception {
-		if (value<=0xff) {
-			return new byte[] { unsignedToBytes(value)};
-		}
-		else if (value<=0xffff) {
-			return new byte[] {(byte)(value >> 8),(byte)(value & 0xff)};
-		}
-		else if (value<=0xffffff) {
-			return new byte[] {(byte)(value>> 16),(byte)((value>> 8) & 0xff),(byte)(value & 0xff)};
-		}
-		else if (value<=0xffffffff) {
-			return new byte[] {(byte)(value>>24),(byte)((value>> 16) & 0xff),(byte)((value>> 8) & 0xff),(byte)(value & 0xff)};
+		if (value <= 0xff) {
+			return new byte[]{unsignedToBytes(value)};
+		} else if (value <= 0xffff) {
+			return new byte[]{(byte) (value >> 8), (byte) (value & 0xff)};
+		} else if (value <= 0xffffff) {
+			return new byte[]{(byte) (value >> 16), (byte) ((value >> 8) & 0xff), (byte) (value & 0xff)};
+		} else if (value <= 0xffffffff) {
+			return new byte[]{(byte) (value >> 24), (byte) ((value >> 16) & 0xff), (byte) ((value >> 8) & 0xff), (byte) (value & 0xff)};
 		}
 
 		throw new Exception("tag troppo lungo");
 	}
 
-	public static void increment (byte[] array) throws Exception {
-		increment(array,array.length-1);
+	public static void increment(byte[] array) throws Exception {
+		increment(array, array.length - 1);
 	}
 
-	public static void increment (byte[] array, int indice) {
+	public static void increment(byte[] array, int indice) {
 		//System.out.println("seq:  " + bytesToHex(array));
-		if (Byte.compare(array[indice],(byte)0xff) == 0){ //Byte.MAX_VALUE) {
+		if (Byte.compare(array[indice], (byte) 0xff) == 0) { //Byte.MAX_VALUE) {
 			//System.out.println("trovato un max_value ");
 			array[indice] = 0x00;//Byte.MIN_VALUE;
 			increment(array, (indice - 1));
-		}
-		else {
+		} else {
 			array[indice] = (byte) (array[indice] + 1);
 			//System.out.println("m.recupero seq incremantata:  " + bytesToHex(array));
 		}
@@ -115,8 +107,8 @@ public class AppUtil {
 		return new String(array, StandardCharsets.UTF_8);
 	}
 
-	public static byte[] getSub(byte[] array, int start,int num) {
-		if(Math.signum(num) < 0)
+	public static byte[] getSub(byte[] array, int start, int num) {
+		if (Math.signum(num) < 0)
 			num = num & 0xff;
 		byte[] data = new byte[num];
 		System.arraycopy(array, start, data, 0, data.length);
@@ -124,42 +116,41 @@ public class AppUtil {
 	}
 
 	public static byte[] getSub(byte[] array, int start) {
-
 		byte[] data = new byte[array.length - start];
 		System.arraycopy(array, start, data, 0, data.length);
 		return data;
 	}
 
 	public static byte[] stringXor(byte[] b1, byte[] b2) throws Exception {
-		if(b1.length != b2.length)
+		if (b1.length != b2.length)
 			throw new Exception("Le due stringhe hanno lunghezza diversa!");
 		byte[] data = new byte[b1.length];
-		for(int i=0;i<b1.length;i++){
-			data[i] = (byte)(b1[i]^b2[i]);
+		for (int i = 0; i < b1.length; i++) {
+			data[i] = (byte) (b1[i] ^ b2[i]);
 		}
 		return data;
 	}
 
 	public static byte[] getIsoPad(byte[] data) {
 		int padLen;
-		if((data.length & 0x7) == 0)
+		if ((data.length & 0x7) == 0)
 			padLen = data.length + 8;
 		else
 			padLen = data.length - (data.length & 0x7) + 0x08;
 		byte[] padData = new byte[padLen];
 		System.arraycopy(data, 0, padData, 0, data.length);
-		padData[data.length] = (byte)0x80;
-		for(int i = data.length + 1; i<padData.length;i++)
+		padData[data.length] = (byte) 0x80;
+		for (int i = data.length + 1; i < padData.length; i++)
 			padData[i] = 0;
 		return padData;
 	}
 
-	public static  byte[] hexStringToByteArray(String s) {
+	public static byte[] hexStringToByteArray(String s) {
 		int len = s.length();
 		byte[] data = new byte[len / 2];
 		for (int i = 0; i < len; i += 2) {
 			data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-					+ Character.digit(s.charAt(i+1), 16));
+					+ Character.digit(s.charAt(i + 1), 16));
 		}
 		return data;
 	}
@@ -169,28 +160,28 @@ public class AppUtil {
 		r.nextBytes(array);
 	}
 
-	public static byte[] getSha1(byte[] array) throws  Exception {
+	public static byte[] getSha1(byte[] array) throws Exception {
 		MessageDigest md = MessageDigest.getInstance("SHA1");
 		return md.digest(array);
 	}
 
-	public static byte[] getRight(byte[] array,int num) {
-		if(num > array.length)
+	public static byte[] getRight(byte[] array, int num) {
+		if (num > array.length)
 			return array.clone();
 		byte data[] = new byte[num];
 		System.arraycopy(array, array.length - num, data, 0, num);
 		return data;
 	}
 
-	public static byte[] getLeft(byte[] array,int num) {
-		if(num > array.length)
+	public static byte[] getLeft(byte[] array, int num) {
+		if (num > array.length)
 			return array.clone();
 		byte data[] = new byte[num];
 		System.arraycopy(array, 0, data, 0, num);
 		return data;
 	}
 
-	public static byte[] appendByteArray(byte[] a, byte[]b) {
+	public static byte[] appendByteArray(byte[] a, byte[] b) {
 		byte[] c = new byte[a.length + b.length];
 		System.arraycopy(a, 0, c, 0, a.length);
 		System.arraycopy(b, 0, c, a.length, b.length);
@@ -208,9 +199,9 @@ public class AppUtil {
 		int i;
 		int tot = 0;
 		int curval = 0;
-		int[] weight = new int[] { 7, 3, 1 };
+		int[] weight = new int[]{7, 3, 1};
 		for (i = 0; i < data.length; i++) {
-			char ch = Character.toUpperCase(((char)data[i]));
+			char ch = Character.toUpperCase(((char) data[i]));
 			if (ch >= 'A' && ch <= 'Z')
 				curval = ch - 'A' + 10;
 			else {
@@ -226,12 +217,12 @@ public class AppUtil {
 			tot += curval * weight[i % 3];
 		}
 		tot = tot % 10;
-		return (byte)('0' + tot);
+		return (byte) ('0' + tot);
 	}
 
-	public static String bytesToHex (byte[] bytes) {
+	public static String bytesToHex(byte[] bytes) {
 		StringBuilder sb = new StringBuilder(bytes.length * 2);
-		for (int i=0; i< bytes.length; i++) {
+		for (int i = 0; i < bytes.length; i++) {
 			sb.append(String.format("%02x", bytes[i]));
 		}
 		return sb.toString();

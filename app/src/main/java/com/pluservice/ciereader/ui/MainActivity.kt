@@ -17,6 +17,8 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -32,10 +34,9 @@ import com.pluservice.ciereader.neptune.ICoupler
 import com.pluservice.ciereader.neptune.NeptuneCoupler
 import com.pluservice.ciereader.neptune.NeptuneReader
 
-
 import kotlinx.android.synthetic.main.activity_main.*
+import org.jmrtd.lds.icao.MRZInfo
 
-import org.jmrtd.lds.MRZInfo
 import org.spongycastle.jce.provider.BouncyCastleProvider
 
 import java.security.Security
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
 
     private var nfcAdapter: NfcAdapter? = null
     private var mrzInfo: MRZInfo? = null
+    private var can: String? = null
 
     private var isNfcSupported = false
 
@@ -97,7 +99,26 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
         Security.insertProviderAt(BouncyCastleProvider(), 1)
 
         btnScanMrz.setOnClickListener { openScanMrz() }
-        btnSettings.setOnClickListener { startActivity(Intent(this, PreferencesActivity::class.java)) }
+        btnConfirmCAN.setOnClickListener { confirmCAN() }
+        //btnSettings.setOnClickListener { startActivity(Intent(this, PreferencesActivity::class.java)) }
+
+        radioGroup.setOnCheckedChangeListener { group, checkedId ->
+            when (checkedId) {
+                R.id.radioBAC -> {
+                    btnScanMrz.visibility = View.VISIBLE
+                    txtMrzInfo.visibility = View.VISIBLE
+                    btnConfirmCAN.visibility = View.GONE
+                    inputCAN.visibility = View.GONE
+                }
+
+                R.id.radioPACE -> {
+                    btnScanMrz.visibility = View.GONE
+                    txtMrzInfo.visibility = View.GONE
+                    btnConfirmCAN.visibility = View.VISIBLE
+                    inputCAN.visibility = View.VISIBLE
+                }
+            }
+        }
 
         initializeNFC()
 
@@ -133,13 +154,22 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
         }
     }
 
-    private fun startNfcListening() {
-        if (nfcAdapter != null && nfcAdapter!!.isEnabled) {
-            Log.d("ASD", "Start NFC listening")
-            nfcAdapter!!.enableReaderMode(this, this,
-                    NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK, null)
-        } else {
-            showNfcSettings()
+    private fun startChipListening() {
+        if (isNfcSupported) { //NFC LISTENING
+            if (nfcAdapter != null && nfcAdapter!!.isEnabled) {
+                Log.d("ASD", "Start NFC listening")
+                nfcAdapter!!.enableReaderMode(this, this,
+                        NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK, null)
+            } else {
+                showNfcSettings()
+            }
+        } else { //PICC LISTENING
+            val coupler: ICoupler = NeptuneCoupler(applicationContext)
+            val detected: Boolean = NeptuneReader().execute(coupler).get()
+            if (detected) {
+                val eacListener = EacListener(null, coupler, mrzInfo, can, this)
+                eacListener.run()
+            }
         }
     }
 
@@ -147,7 +177,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
         Log.d("ASD", "CHIP RILEVATO")
         try {
             val isoDep: IsoDep = IsoDep.get(tag) //l'oggetto IsoDep implementa la specifica  ISO-DEP (ISO 14443-4) per le operazioni di I/O verso il chip
-            val eacListener = EacListener(isoDep, null, mrzInfo, this)
+            val eacListener = EacListener(isoDep, null, mrzInfo, can, this)
             eacListener.run()
 
         } catch (ex: Exception) {
@@ -170,6 +200,11 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
         }
     }
 
+    private fun confirmCAN() {
+        can = inputCAN.text.toString()
+        startChipListening()
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         super.onActivityResult(requestCode, resultCode, intent)
 
@@ -183,16 +218,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
                         "expiry date : " + mrzInfo!!.dateOfExpiry
                 txtNfcReady.visibility = View.VISIBLE
 
-                if (isNfcSupported) {
-                    startNfcListening()
-                } else {
-                    val coupler: ICoupler = NeptuneCoupler(applicationContext)
-                    val detected: Boolean = NeptuneReader().execute(coupler).get()
-                    if (detected) {
-                        val eacListener = EacListener(null, coupler, mrzInfo, this)
-                        eacListener.run()
-                    }
-                }
+                startChipListening()
             } else {
                 Toast.makeText(this, "MRZ null", Toast.LENGTH_SHORT).show()
             }

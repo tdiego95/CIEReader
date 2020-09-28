@@ -32,10 +32,6 @@ class NeptuneCoupler(context: Context) : ICoupler {
     override fun detect(): Boolean {
         tag = reader!!.detect(EDetectMode.ONLY_A) //ISO14443_AB //ONLY_A //EMV_AB
 
-        if (tag != null) {
-            Log.d("ASD", tag.toString())
-        }
-
         return tag != null
     }
 

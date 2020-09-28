@@ -62,7 +62,7 @@ import com.googlecode.tesseract.android.TessBaseAPI;
 import com.pluservice.ciereader.camera.CameraManager;
 import com.pluservice.ciereader.camera.ShutterButton;
 
-import org.jmrtd.lds.MRZInfo;
+import org.jmrtd.lds.icao.MRZInfo;
 
 /**
  * This activity opens the camera and does the actual scanning on a background thread. It draws a

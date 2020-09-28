@@ -9,22 +9,30 @@ import android.util.Log;
 import com.gemalto.jp2.JP2Decoder;
 import com.pluservice.ciereader.neptune.ICoupler;
 
-import net.sf.scuba.smartcards.CardFileInputStream;
+import net.pluservice.devices.models.CardType;
 import net.sf.scuba.smartcards.CardService;
+import net.sf.scuba.smartcards.CardServiceException;
 
 import org.jmrtd.BACKey;
 import org.jmrtd.BACKeySpec;
+import org.jmrtd.PACEKeySpec;
 import org.jmrtd.PassportService;
-import org.jmrtd.lds.DG2File;
-import org.jmrtd.lds.FaceImageInfo;
-import org.jmrtd.lds.FaceInfo;
-import org.jmrtd.lds.MRZInfo;
-import org.jmrtd.lds.LDS;
+import org.jmrtd.lds.CardAccessFile;
+import org.jmrtd.lds.LDSFileUtil;
+import org.jmrtd.lds.SecurityInfo;
+import org.jmrtd.lds.icao.DG11File;
+import org.jmrtd.lds.icao.DG2File;
+import org.jmrtd.lds.iso19794.FaceImageInfo;
+import org.jmrtd.lds.iso19794.FaceInfo;
+import org.jmrtd.lds.icao.MRZInfo;
+import org.jmrtd.lds.PACEInfo;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +44,8 @@ public class Eac {
 	private IsoDep isoDep;
 	private ICoupler coupler;
 	private MRZInfo mrz;
+	private String can;
+
 	private Context context;
 	private static byte[] kSessEnc = null;
 	private static byte[] kSessMac = null;
@@ -46,10 +56,11 @@ public class Eac {
 	private static final String TAG = "m.recupero";
 
 	//costruttore
-	public Eac(IsoDep isoDep, ICoupler coupler, MRZInfo mrz, Context context) {
+	public Eac(IsoDep isoDep, ICoupler coupler, MRZInfo mrz, String can, Context context) {
 		this.isoDep = isoDep;
 		this.coupler = coupler;
 		this.mrz = mrz;
+		this.can = can;
 		this.context = context;
 	}
 
@@ -61,7 +72,7 @@ public class Eac {
 	}
 
 	//metodo iniziale per lo scambio delle chiavi di sessione
-	public void init() throws Exception {
+	public void bacAuthentication() throws Exception {
 
 		if ((isoDep == null && coupler == null) || mrz == null || context == null) return;
 
@@ -222,30 +233,96 @@ public class Eac {
 		}
 	}
 
-	public Bitmap parseDg2() throws Exception {
+	public PassportService auth(/*mode*/) throws Exception {
 
 		sendUpdateToActivity("Inizio lettura foto in corso");
 		Bitmap bitmap = null;
+		PassportService service = null;
 
 		try {
-			BACKeySpec bacKey = new BACKey(mrz.getDocumentNumber(), mrz.getDateOfBirth(), mrz.getDateOfExpiry());
-			DG2File dg2File;
-
 			CardService cardService = CardService.getInstance(isoDep);
 			cardService.open();
 
-			PassportService service = new PassportService(cardService);
+			service = new PassportService(
+					cardService,
+					can != null ? PassportService.EXTENDED_MAX_TRANCEIVE_LENGTH : PassportService.NORMAL_MAX_TRANCEIVE_LENGTH,
+					PassportService.DEFAULT_MAX_BLOCKSIZE,
+					false,
+					true);
 			service.open();
 
-			service.sendSelectApplet(true);
+			if (mrz != null) {
+				/* BAC AUTH WITH MRZ */
+				BACKeySpec bacKey = new BACKey(mrz.getDocumentNumber(), mrz.getDateOfBirth(), mrz.getDateOfExpiry());
 
-			service.doBAC(bacKey);
+				service.sendSelectApplet(true);
+				service.doBAC(bacKey);
 
-			LDS lds = new LDS();
+			} else if (can != null) {
 
-			CardFileInputStream dg2In = service.getInputStream(PassportService.EF_DG2);
-			lds.add(PassportService.EF_DG2, dg2In, dg2In.getLength());
-			dg2File = lds.getDG2File();
+				/* PACE AUTH WITH CAN */
+				PACEKeySpec paceKey = PACEKeySpec.createCANKey(can);
+
+				boolean paceSucceeded = false;
+
+				try {
+					CardAccessFile cardAccessFile = new CardAccessFile(service.getInputStream(PassportService.EF_CARD_ACCESS));
+					Collection<SecurityInfo> securityInfos = cardAccessFile.getSecurityInfos();
+					SecurityInfo securityInfo = securityInfos.iterator().next();
+
+					List<PACEInfo> paceInfos = getPACEInfos(securityInfos);
+
+					if (paceInfos.size() > 0) {
+						PACEInfo paceInfo = paceInfos.get(0);
+						service.doPACE(paceKey, paceInfo.getObjectIdentifier(), PACEInfo.toParameterSpec(paceInfo.getParameterId()), paceInfo.getParameterId());
+						paceSucceeded = true;
+					} else {
+						paceSucceeded = true;
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+
+				service.sendSelectApplet(paceSucceeded);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		return service;
+	}
+
+	public UserInfo readDg11(PassportService service) {
+
+		sendUpdateToActivity("Inizio lettura dati personali");
+		DG11File dg11File;
+		UserInfo userInfo = new UserInfo();
+
+		try {
+			dg11File = (DG11File) LDSFileUtil.getLDSFile(PassportService.EF_DG11, service.getInputStream(PassportService.EF_DG11));
+			userInfo.setBirthDate(dg11File.getFullDateOfBirth());
+			userInfo.setCodiceFiscale(dg11File.getPersonalNumber());
+			userInfo.setFullName(dg11File.getNameOfHolder());
+			userInfo.setResidence(String.valueOf(dg11File.getPermanentAddress()));
+			userInfo.setBirthPlace(String.valueOf(dg11File.getPlaceOfBirth()));
+			sendUpdateToActivity("Lettura dati personali completata con successo");
+
+		} catch (IOException | CardServiceException e) {
+			e.printStackTrace();
+			sendUpdateToActivity("Errore lettura dati personali");
+		}
+
+		return userInfo;
+	}
+
+	public Bitmap readDg2(PassportService service) {
+
+		sendUpdateToActivity("Inizio lettura foto");
+		DG2File dg2File;
+		Bitmap photo = null;
+
+		try {
+			dg2File = (DG2File) LDSFileUtil.getLDSFile(PassportService.EF_DG2, service.getInputStream(PassportService.EF_DG2));
 
 			List<FaceImageInfo> allFaceImageInfos = new ArrayList<>();
 			List<FaceInfo> faceInfos = dg2File.getFaceInfos();
@@ -261,16 +338,32 @@ public class Eac {
 				byte[] buffer = new byte[imageLength];
 				dataInputStream.readFully(buffer, 0, imageLength);
 
-				bitmap = new JP2Decoder(buffer).decode();
+				photo = new JP2Decoder(buffer).decode();
 
 				sendUpdateToActivity("Lettura foto completata con successo");
 			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			sendUpdateToActivity("-- ERRORE LETTURA FOTO --");
+		} catch (IOException | CardServiceException e) {
+			e.printStackTrace();
+			sendUpdateToActivity("Errore lettura foto");
 		}
 
-		return bitmap;
+		return photo;
+	}
+
+	private static List<PACEInfo> getPACEInfos(Collection<SecurityInfo> securityInfos) {
+		List<PACEInfo> paceInfos = new ArrayList<PACEInfo>();
+
+		if (securityInfos == null) {
+			return paceInfos;
+		}
+
+		for (SecurityInfo securityInfo: securityInfos) {
+			if (securityInfo instanceof PACEInfo) {
+				paceInfos.add((PACEInfo)securityInfo);
+			}
+		}
+
+		return paceInfos;
 	}
 
 	//metodo per la lettura dei dg

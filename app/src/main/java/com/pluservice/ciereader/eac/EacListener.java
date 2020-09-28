@@ -8,7 +8,8 @@ import android.util.Log;
 
 import com.pluservice.ciereader.neptune.ICoupler;
 
-import org.jmrtd.lds.MRZInfo;
+import org.jmrtd.PassportService;
+import org.jmrtd.lds.icao.MRZInfo;
 
 import java.io.IOException;
 
@@ -21,15 +22,17 @@ Al suo interno i metodi per gestire la progressione della lettura e la gestione 
 public class EacListener implements Runnable {
 
 	private MRZInfo mrz;
+	private String can;
 	private IsoDep isoDep;
 	private ICoupler coupler;
 	private Context context;
 	
 	//costruttore
-	public EacListener(IsoDep isoDep, ICoupler coupler, MRZInfo mrz, Context context) {
+	public EacListener(IsoDep isoDep, ICoupler coupler, MRZInfo mrz, String can, Context context) {
 		this.isoDep = isoDep;
 		this.coupler = coupler;
 		this.mrz = mrz;
+		this.can = can;
 		this.context = context;
 	}
 	
@@ -42,18 +45,22 @@ public class EacListener implements Runnable {
 				isoDep.setTimeout(6000);
 			}
 
-			Eac eac = new Eac(isoDep, coupler, mrz, context); //istanza della class di logica
-			eac.init(); //scambio di chiavi
-			eac.readDgs(); //lettura dei datagroups
-			
-			UserInfo info = eac.parseDg11(); //parsing datagroup 11 - prende i dati personali dell'utente
-			sendDataToActivity(info);
+			Eac eac = new Eac(isoDep, coupler, mrz, can, context); //istanza della class di logica
 
-			if (isoDep != null) {
-				Bitmap image = eac.parseDg2();
-				sendUserImageToActivity(image);
-				isoDep.close();//si chiude la connessione IsoDep
-			}
+			//eac.bacAuthentication(); //scambio di chiavi
+			//eac.readDgs(); //lettura dei datagroups
+			//UserInfo info = eac.parseDg11(); //parsing datagroup 11 - prende i dati personali dell'utente
+			//sendDataToActivity(info);
+
+			PassportService service = eac.auth();
+
+			UserInfo userInfo = eac.readDg11(service);
+			sendDataToActivity(userInfo);
+
+			Bitmap photo = eac.readDg2(service);
+			sendUserImageToActivity(photo);
+
+			isoDep.close(); //si chiude la connessione IsoDep
 
 		} catch (IOException excp) {
 			excp.printStackTrace();
