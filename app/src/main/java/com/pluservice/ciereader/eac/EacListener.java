@@ -47,18 +47,26 @@ public class EacListener implements Runnable {
 
 			Eac eac = new Eac(isoDep, coupler, mrz, can, context); //istanza della class di logica
 
-			//eac.bacAuthentication(); //scambio di chiavi
-			//eac.readDgs(); //lettura dei datagroups
-			//UserInfo info = eac.parseDg11(); //parsing datagroup 11 - prende i dati personali dell'utente
-			//sendDataToActivity(info);
+			// --- REGION AUTH AND DATA READ HOME-MADE ---
+			if (eac.isSac())
+				eac.paceAuthentication();
+			else
+				eac.bacAuthentication();
 
-			PassportService service = eac.auth();
+			eac.readDgs(); //lettura dei datagroups
+			UserInfo info = eac.parseDg11(); //parsing datagroup 11 - prende i dati personali dell'utente
+			sendDataToActivity(info);
+			// --- END REGION ---
+
+			// --- REGION MRTD ---
+			/*D PassportService service = eac.auth();
 
 			UserInfo userInfo = eac.readDg11(service);
 			sendDataToActivity(userInfo);
 
 			Bitmap photo = eac.readDg2(service);
-			sendUserImageToActivity(photo);
+			sendUserImageToActivity(photo);*/
+			// --- END REGION ---
 
 			isoDep.close(); //si chiude la connessione IsoDep
 

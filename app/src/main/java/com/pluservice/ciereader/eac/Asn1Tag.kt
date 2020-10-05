@@ -21,7 +21,7 @@ constructor(objects: Array<Any>) {
     val isTagConstructed: Boolean
         @Throws(Exception::class)
         get() = this.tag[0].toInt() and 0x20 != 0
-    private val tagRawNumber: Int
+    val tagRawNumber: Int
         @Throws(Exception::class)
         get() {
             var num = tag[0].toInt()
@@ -57,6 +57,13 @@ constructor(objects: Array<Any>) {
                 return subTag
         }
         return null
+    }
+
+    fun CheckTag(tagToCheck: Int): Asn1Tag {
+        if (tagRawNumber != tagToCheck) {
+            throw Asn1TagParseException("Check del tag fallito")
+        }
+        return this
     }
 
     companion object {

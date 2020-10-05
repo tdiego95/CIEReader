@@ -9,7 +9,6 @@ import android.util.Log;
 import com.gemalto.jp2.JP2Decoder;
 import com.pluservice.ciereader.neptune.ICoupler;
 
-import net.pluservice.devices.models.CardType;
 import net.sf.scuba.smartcards.CardService;
 import net.sf.scuba.smartcards.CardServiceException;
 
@@ -30,6 +29,7 @@ import org.jmrtd.lds.PACEInfo;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -167,6 +167,200 @@ public class Eac {
 		}
 	}
 
+	HashMap<String, PACE.PACEAlgo> PACEAlgo = new HashMap<>();
+	String DH_GM_DES_Oid = "04007f00070202040101"; //"BAB/AAcCAgQBAQ==";
+	String CAN = "836841";
+
+	public void paceAuthentication() {
+
+		try {
+			PACE.PACEAlgo algo = PACEAlgo.get(DH_GM_DES_Oid);
+
+			byte[] temp1 = algo.DG14Tag.Child(0, (byte) 6).getData();
+			byte[] temp2 = AppUtil.asn1Tag(temp1, 0x80);
+			byte[] MSEData = AppUtil.appendByteArray(temp2, AppUtil.asn1Tag(new byte[]{0x02}, 0x83)); //mode : MRZ = 0x01 - CAN = 0x02
+
+			ApduResponse res;
+			if (isoDep != null)
+				res = new ApduResponse(isoDep.transceive(new Apdu((byte) 0x00, (byte) 0x22, (byte) 0xc1, (byte) 0xa4, MSEData).GetBytes()));
+			else
+				res = new ApduResponse(coupler.isoDepTransceive(new Apdu((byte) 0x00, (byte) 0x22, (byte) 0xc1, (byte) 0xa4, MSEData).GetBytes()));
+			if (!res.getSwHex().equals("9000")) {
+				throw new Exception("Errore nel protocollo PACE:MSE Set AT - " + res.getSwHex());
+			}
+
+			byte[] GAData1 = AppUtil.asn1Tag(new byte[]{}, 0x7c);
+			ApduResponse res2;
+			if (isoDep != null)
+				res2 = new ApduResponse(isoDep.transceive(new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData1, (byte) 0x00).GetBytes()));
+			else
+				res2 = new ApduResponse(coupler.isoDepTransceive(new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData1, (byte) 0x00).GetBytes()));
+			if (!res2.getSwHex().equals("9000")) {
+				throw new Exception("Errore nel protocollo PACE:General Authenticate 1 - " + res2.getSwHex());
+			}
+
+			byte[] encryptedNonce = Asn1Tag.Companion.parse(res2.getResponse(), false).CheckTag(0x7c).Child(0, (byte) 0x80).getData();
+
+			// la chiave per decifrare il nonce è SHA1(K||00000003);
+			byte[] keyNonce = AppUtil.getLeft(AppUtil.getSha1(AppUtil.appendByteArray(CAN.getBytes(), new byte[]{(byte) 0x00, 0x00, 0x00, 0x03})), 16);
+			byte[] nonce = Algoritmi.desDec(keyNonce, encryptedNonce);
+			PACE.DHKey key1 = algo.GenerateEphimeralKey1();
+
+			// il secondo GA serve a inviare la chiave pubblica effimera
+			byte[] GAData2 = AppUtil.asn1Tag(AppUtil.asn1Tag(key1.Public, 0x81), 0x7c);
+			ApduResponse res3;
+			if (isoDep != null)
+				res3 = new ApduResponse(isoDep.transceive(new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData2, (byte) 0x00).GetBytes()));
+			else
+				res3 = new ApduResponse(coupler.isoDepTransceive(new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData2, (byte) 0x00).GetBytes()));
+			if (!res3.getSwHex().equals("9000")) {
+				throw new Exception("Errore nel protocollo PACE:General Authenticate 2 - " + res3.getSwHex());
+			}
+
+			byte[] otherPubKey1 = Asn1Tag.Companion.parse(res3.getResponse(), false).CheckTag(0x7c).Child(0, (byte) 0x82).getData();
+
+			byte[] secret1 = algo.GetSharedSecret1(otherPubKey1);
+			algo.DoMapping(secret1, nonce);
+			PACE.DHKey key2 = algo.GenerateEphimeralKey2();
+
+			// il terzo GA serve a inviare la chiave pubblica effimera nei nuovi parametri di dominio
+			byte[] GAData3 = AppUtil.asn1Tag(AppUtil.asn1Tag(key2.Public, 0x83), 0x7c);
+			ApduResponse res4;
+			if (isoDep != null)
+				res4 = new ApduResponse(isoDep.transceive(new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData3, (byte) 0x00).GetBytes()));
+			else
+				res4 = new ApduResponse(coupler.isoDepTransceive(new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData3, (byte) 0x00).GetBytes()));
+			if (!res4.getSwHex().equals("9000")) {
+				throw new Exception("Errore nel protocollo PACE:General Authenticate 3 - " + res4.getSwHex());
+			}
+
+			byte[] otherPubKey2 = Asn1Tag.Companion.parse(res4.getResponse(), false).CheckTag(0x7c).Child(0, (byte) 0x84).getData();
+			byte[] dynamicBindingData = otherPubKey2;
+			byte[] secret2 = algo.GetSharedSecret2(otherPubKey2);
+
+			kSessMac = AppUtil.getLeft(AppUtil.getSha1(AppUtil.appendByteArray(secret2, new byte[]{(byte) 0x00, 0x00, 0x00, 0x02})), 16);
+			kSessEnc = AppUtil.getLeft(AppUtil.getSha1(AppUtil.appendByteArray(secret2, new byte[]{(byte) 0x00, 0x00, 0x00, 0x01})), 16);
+
+			Asn1Tag oidTag = algo.DG14Tag.child(0);
+			byte[] authData = AppUtil.asn1Tag(AppUtil.appendByteArray(AppUtil.asn1Tag(oidTag.getData(), oidTag.getTagRawNumber()), AppUtil.asn1Tag(otherPubKey2, 0x84)), 0x7F49);
+			byte[] authToken = Algoritmi.macEnc(kSessMac, AppUtil.getIsoPad(authData));
+
+			// il quarto e ultimo GA serve a inviare l'authentication token
+			// fine del command chaining
+			byte[] GAData4 = AppUtil.asn1Tag(AppUtil.asn1Tag(authToken, 0x85), 0x7c);
+			ApduResponse res5;
+			if (isoDep != null)
+				res5 = new ApduResponse(isoDep.transceive(new Apdu((byte) 0x00, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData4, (byte) 0x00).GetBytes()));
+			else
+				res5 = new ApduResponse(coupler.isoDepTransceive(new Apdu((byte) 0x00, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData4, (byte) 0x00).GetBytes()));
+			if (!res5.getSwHex().equals("9000")) {
+				throw new Exception("Errore nel protocollo PACE:General Authenticate 4 - " + res5.getSwHex());
+			}
+
+			byte[] otherAuthData = AppUtil.asn1Tag(AppUtil.appendByteArray(AppUtil.asn1Tag(oidTag.getData(), oidTag.getTagRawNumber()), AppUtil.asn1Tag(key2.Public, 0x84)), 0x7F49);
+			byte[] otherAuthToken = Asn1Tag.Companion.parse(res5.getResponse(), false).CheckTag(0x7c).Child(0, (byte) 0x86).getData();
+			byte[] otherAuthTokenCalc = Algoritmi.macEnc(kSessMac, AppUtil.getIsoPad(otherAuthData));
+
+			if (!Arrays.equals(otherAuthTokenCalc, otherAuthToken))
+				throw new Exception("Errore nel protocollo PACE:Authentication token non corrispondente");
+
+			seq = new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+			byte[] data = sm(kSessEnc, kSessMac, new byte[]{0x0c, (byte) 0xa4, 0x04, 0x0c, 0x07, (byte) 0xA0, 0x00, 0x00, 0x02, 0x47, 0x10, 0x01, 0x00});
+			ApduResponse res6;
+			if (isoDep != null)
+				res6 = new ApduResponse(isoDep.transceive(data));
+			else
+				res6 = new ApduResponse(coupler.isoDepTransceive(data));
+			if (!res6.getSwHex().equals("9000")) {
+				throw new Exception("Errore nella selezione dell'LDF : " + res6.getSwHex());
+			}
+
+			respSM(kSessEnc, kSessMac, res6.getResponse());
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	public boolean isSac() {
+
+		try {
+			byte[] cardAccess = readCardAccess();
+			// il cardAccess contiene gli algoritmi PACE supportati
+			Asn1Tag caTag = Asn1Tag.Companion.parse(cardAccess, false);
+			caTag.CheckTag(0x31);
+			for (Asn1Tag tag : caTag.getChildren())
+				PACEAlgo.put(AppUtil.bytesToHex(tag.CheckTag(0x30).Child(0, (byte) 6).getData()), new PACE.PACEAlgo(tag));
+
+			if (!PACEAlgo.containsKey(DH_GM_DES_Oid))
+				return false;
+
+			Log.d(TAG, "CardAccess letto correttamente; il chip è SAC");
+			return true;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return true;
+	}
+
+	public byte[] readCardAccess() {
+		byte[] data = new byte[]{};
+		try {
+			byte[] apdu = AppUtil.hexStringToByteArray("00A4020C02011C"); //SELECT File command
+			ApduResponse resp;
+			if (isoDep != null)
+				resp = new ApduResponse(isoDep.transceive(apdu));
+			else
+				resp = new ApduResponse(coupler.isoDepTransceive(apdu));
+			if (!resp.getSwHex().equals("9000")) {
+				throw new Exception("Errore nella selezione del card access");
+			}
+
+			ApduResponse chunkLen;
+			if (isoDep != null)
+				chunkLen = new ApduResponse(isoDep.transceive(Apdu.ReadBinary(0, (byte) 6).GetBytes()));
+			else
+				chunkLen = new ApduResponse(coupler.isoDepTransceive(Apdu.ReadBinary(0, (byte) 6).GetBytes()));
+			if (!chunkLen.getSwHex().equals("9000")) {
+				throw new Exception("Errore nella lettura del Card Access");
+			}
+
+			ByteArrayInputStream ms = new ByteArrayInputStream(chunkLen.getResponse());
+			int maxLen = Asn1Tag.Companion.parseLength(ms, 0, chunkLen.getResponse().length);
+			while (data.length < maxLen) {
+				int readLen = Math.min(200, maxLen - data.length);
+
+				ApduResponse chunk;
+				if (isoDep != null)
+					chunk = new ApduResponse(isoDep.transceive(Apdu.ReadBinary(data.length, (byte) readLen).GetBytes()));
+				else
+					chunk = new ApduResponse(coupler.isoDepTransceive(Apdu.ReadBinary(data.length, (byte) readLen).GetBytes()));
+				if (!chunk.getSwHex().equals("9000")) {
+					throw new Exception("Errore nella lettura del Card Access 2");
+				}
+
+				data = AppUtil.appendByteArray(data, chunk.getResponse());
+			}
+		} catch (Exception ex) {
+			Log.e(TAG, "Errore nella lettura del Card Access 3");
+			ex.printStackTrace();
+		}
+
+		return data;
+	}
+
+	private byte[] newApdu(byte cla, byte ins, byte p1, byte p2, byte le) {
+		byte[] pbtAPDU;
+		pbtAPDU = new byte[5];
+		pbtAPDU[0] = cla;
+		pbtAPDU[1] = ins;
+		pbtAPDU[2] = p1;
+		pbtAPDU[3] = p2;
+		pbtAPDU[4] = le;
+		return pbtAPDU;
+	}
+
 	//recupero la struttura dei dg, la conservo dentro una mappa
 	public void readDgs() throws Exception {
 
@@ -210,7 +404,6 @@ public class Eac {
 
 	public void parseDg1() throws Exception {
 		//D IL DG1 TORNA L'MRZ, UTILIZZARE IN CASO DI BISOGNO ESTRAZIONE SESSO E NAZIONALITA
-
 	}
 
 	public UserInfo parseDg11() throws Exception {
@@ -357,9 +550,9 @@ public class Eac {
 			return paceInfos;
 		}
 
-		for (SecurityInfo securityInfo: securityInfos) {
+		for (SecurityInfo securityInfo : securityInfos) {
 			if (securityInfo instanceof PACEInfo) {
-				paceInfos.add((PACEInfo)securityInfo);
+				paceInfos.add((PACEInfo) securityInfo);
 			}
 		}
 
@@ -434,9 +627,9 @@ public class Eac {
 		AppUtil.increment(seq);
 		// cerco il tag 87
 		setIndex(0);
-		byte[] encData = null;
-		byte[] encObj = null;
-		byte[] dataObj = null;
+		byte[] encData = new byte[]{};
+		byte[] encObj = new byte[]{};
+		byte[] dataObj = new byte[]{};
 
 		do {
 			if (resp[index] == (byte) 0x99) {
@@ -497,7 +690,7 @@ public class Eac {
 			//index = index + resp[index + 1] + 1;
 		} while (index < resp.length);
 
-		if (encData != null) {
+		if (encData.length > 0) {
 			if (odd) {
         		/* byte[] smResp = isoRemove(Algoritmi.desDec(keyEnc, encData));
         		 Asn1Tag tag = Asn1Tag.parse(smResp, false);
@@ -530,7 +723,7 @@ public class Eac {
 		AppUtil.increment(seq);
 		byte[] calcMac = AppUtil.getIsoPad(AppUtil.appendByteArray(seq, AppUtil.getLeft(apdu, 4)));
 		byte[] smMac;
-		byte[] dataField = null;
+		byte[] dataField = new byte[]{};
 		byte[] doob;
 
 		if (apdu[4] != 0 && apdu.length > 5) {
@@ -546,10 +739,7 @@ public class Eac {
 		if (apdu.length == 5 || apdu.length == apdu[4] + 6) { // ' se c'è un le
 			doob = new byte[]{(byte) 0x97, (byte) 0x01, apdu[apdu.length - 1]};
 			calcMac = AppUtil.appendByteArray(calcMac, doob);
-			if (dataField == null)
-				dataField = doob.clone();
-			else
-				dataField = AppUtil.appendByteArray(dataField, doob);
+			dataField = AppUtil.appendByteArray(dataField, doob);
 		}
 
 		smMac = Algoritmi.macEnc(keyMac, AppUtil.getIsoPad(calcMac));

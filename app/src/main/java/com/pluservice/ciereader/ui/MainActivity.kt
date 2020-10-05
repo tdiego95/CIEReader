@@ -38,6 +38,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import org.jmrtd.lds.icao.MRZInfo
 
 import org.spongycastle.jce.provider.BouncyCastleProvider
+import java.math.BigInteger
 
 import java.security.Security
 
@@ -163,7 +164,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
             } else {
                 showNfcSettings()
             }
-        } else { //PICC LISTENING
+        } else { //NEPTUNE LISTENING
             val coupler: ICoupler = NeptuneCoupler(applicationContext)
             val detected: Boolean = NeptuneReader().execute(coupler).get()
             if (detected) {
@@ -208,7 +209,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         super.onActivityResult(requestCode, resultCode, intent)
 
-        if (requestCode.equals(REQUEST_SCAN_MRZ) && resultCode.equals(Activity.RESULT_OK)) {
+        if (requestCode == REQUEST_SCAN_MRZ && resultCode == Activity.RESULT_OK) {
             val result = intent?.getSerializableExtra(MRZ_RESULT)
             mrzInfo = MRZInfo(result.toString())
             if (mrzInfo != null) {
@@ -237,7 +238,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
         when (requestCode) {
             REQUEST_PERMISSION_CAMERA -> {
                 // If request is cancelled, the result arrays are empty.
-                if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Permission granted", Toast.LENGTH_LONG).show()
                     openScanMrz()
                 } else {

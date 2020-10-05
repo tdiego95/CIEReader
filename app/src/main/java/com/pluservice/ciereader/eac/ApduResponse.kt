@@ -17,8 +17,8 @@ internal class ApduResponse {
 
     @Throws(Exception::class)
     constructor(fullResponse: ByteArray) {
-        this.response = Arrays.copyOfRange(fullResponse, 0, fullResponse.size - 2)
-        this.swByte = Arrays.copyOfRange(fullResponse, fullResponse.size - 2, fullResponse.size)
+        this.response = fullResponse.copyOfRange(0, fullResponse.size - 2)
+        this.swByte = fullResponse.copyOfRange(fullResponse.size - 2, fullResponse.size)
     }
 
     @Throws(Exception::class)
@@ -35,5 +35,4 @@ internal class ApduResponse {
         }
         return sb.toString()
     }
-
 }

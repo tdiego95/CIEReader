@@ -1,10 +1,11 @@
 package com.pluservice.ciereader.eac;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 
 public class PACE {
 
-    public class DHKey {
+    public static class DHKey {
         public byte[] Public;
         public byte[] Private;
     }
@@ -19,9 +20,11 @@ public class PACE {
         byte[] GetSharedSecret(byte[] otherPubKey);
 
         byte[] Encrypt(byte[] data);
+
+        Object clone();
     }
 
-    public class PACEAlgo {
+    public static class PACEAlgo {
         public Asn1Tag DG14Tag;
         public IPACEMapping mapping;
         public IPACEAlgo algo1;
@@ -56,7 +59,7 @@ public class PACE {
         }
     }
 
-    public class GenericMapping implements IPACEMapping {
+    public static class GenericMapping implements IPACEMapping {
         public IPACEAlgo algo;
 
         public GenericMapping(IPACEAlgo algo) {
@@ -64,28 +67,20 @@ public class PACE {
         }
 
         public final IPACEAlgo Map(byte[] secret, byte[] nonce) {
-            /*D Object tempVar = algo.Clone();
-            IPACEAlgo newAlgo = tempVar instanceof IPACEAlgo ? (IPACEAlgo) tempVar : null;
+            IPACEAlgo newAlgo = (IPACEAlgo) algo.clone();
             if (newAlgo instanceof DHAlgo) {
-                DHAlgo dhNewAlgo = (DHAlgo) newAlgo;
-
-                BigInteger group = new BigInteger(dhNewAlgo.Group);
-                BigInteger nonce2 = new BigInteger(nonce);
-                BigInteger prime = new BigInteger(dhNewAlgo.Prime);
-                BigInteger secret2 = new BigInteger(secret);
-
-                BigInteger temp = group.modPow(nonce2, prime);
-                BigInteger temp2 = temp.multiply(secret2);
-                dhNewAlgo.Group = temp2.remainder(prime).toByteArray();
-
+                DHAlgo dhAlgo = (DHAlgo) newAlgo;
+                BigInteger temp = new BigInteger(1, dhAlgo.Group).modPow(new BigInteger(1, nonce), new BigInteger(1, dhAlgo.Prime));
+                BigInteger temp2 = temp.multiply(new BigInteger(1, secret));
+                dhAlgo.Group = temp2.remainder(new BigInteger(1, dhAlgo.Prime)).toByteArray();
             }
-            return newAlgo;*/
-            return null;
+
+            return newAlgo;
         }
     }
 
-    public class DHAlgo implements IPACEAlgo {
-        public final Object Clone() {
+    public static class DHAlgo implements IPACEAlgo {
+        public final Object clone() {
             DHAlgo tempVar = new DHAlgo(DG14Tag);
             tempVar.Group = Group;
             tempVar.Order = Order;
@@ -99,13 +94,12 @@ public class PACE {
         }
 
         public final byte[] GetSharedSecret(byte[] otherPubKey) {
-            //D return DiffieHellmann.ComputeKey(Group, Prime, Key.Private, otherPubKey);
-            return null;
+            return DiffieHellmann.ComputeKey(Group, Prime, new BigInteger(1, Key.Private), new BigInteger(1, otherPubKey));
         }
 
-        public byte[] StandardDHParam2Prime = "87A8E61D B4B6663C FFBBD19C 65195999 8CEEF608 660DD0F2 5D2CEED4 435E3B00 E00DF8F1 D61957D4 FAF7DF45 61B2AA30 16C3D911 34096FAA 3BF4296D 830E9A7C 209E0C64 97517ABD 5A8A9D30 6BCF67ED 91F9E672 5B4758C0 22E0B1EF 4275BF7B 6C5BFC11 D45F9088 B941F54E B1E59BB8 BC39A0BF 12307F5C 4FDB70C5 81B23F76 B63ACAE1 CAA6B790 2D525267 35488A0E F13C6D9A 51BFA4AB 3AD83477 96524D8E F6A167B5 A41825D9 67E144E5 14056425 1CCACB83 E6B486F6 B3CA3F79 71506026 C0B857F6 89962856 DED4010A BD0BE621 C3A3960A 54E710C3 75F26375 D7014103 A4B54330 C198AF12 6116D227 6E11715F 693877FA D7EF09CA DB094AE9 1E1A1597".getBytes();
-        public byte[] StandardDHParam2Group = "3FB32C9B 73134D0B 2E775066 60EDBD48 4CA7B18F 21EF2054 07F4793A 1A0BA125 10DBC150 77BE463F FF4FED4A AC0BB555 BE3A6C1B 0C6B47B1 BC3773BF 7E8C6F62 901228F8 C28CBB18 A55AE313 41000A65 0196F931 C77A57F2 DDF463E5 E9EC144B 777DE62A AAB8A862 8AC376D2 82D6ED38 64E67982 428EBC83 1D14348F 6F2F9193 B5045AF2 767164E1 DFC967C1 FB3F2E55 A4BD1BFF E83B9C80 D052B985 D182EA0A DB2A3B73 13D3FE14 C8484B1E 052588B9 B7D2BBD2 DF016199 ECD06E15 57CD0915 B3353BBB 64E0EC37 7FD02837 0DF92B52 C7891428 CDC67EB6 184B523D 1DB246C3 2F630784 90F00EF8 D647D148 D4795451 5E2327CF EF98C582 664B4C0F 6CC41659".getBytes();
-        public byte[] StandardDHParam2Order = "8CF83642 A709A097 B4479976 40129DA2 99B1A47D 1EB3750B A308B0FE 64F5FBD3".getBytes();
+        public byte[] StandardDHParam2Prime = AppUtil.hexStringToByteArray("87A8E61DB4B6663CFFBBD19C651959998CEEF608660DD0F25D2CEED4435E3B00E00DF8F1D61957D4FAF7DF4561B2AA3016C3D91134096FAA3BF4296D830E9A7C209E0C6497517ABD5A8A9D306BCF67ED91F9E6725B4758C022E0B1EF4275BF7B6C5BFC11D45F9088B941F54EB1E59BB8BC39A0BF12307F5C4FDB70C581B23F76B63ACAE1CAA6B7902D52526735488A0EF13C6D9A51BFA4AB3AD8347796524D8EF6A167B5A41825D967E144E5140564251CCACB83E6B486F6B3CA3F7971506026C0B857F689962856DED4010ABD0BE621C3A3960A54E710C375F26375D7014103A4B54330C198AF126116D2276E11715F693877FAD7EF09CADB094AE91E1A1597");
+        public byte[] StandardDHParam2Group = AppUtil.hexStringToByteArray("3FB32C9B73134D0B2E77506660EDBD484CA7B18F21EF205407F4793A1A0BA12510DBC15077BE463FFF4FED4AAC0BB555BE3A6C1B0C6B47B1BC3773BF7E8C6F62901228F8C28CBB18A55AE31341000A650196F931C77A57F2DDF463E5E9EC144B777DE62AAAB8A8628AC376D282D6ED3864E67982428EBC831D14348F6F2F9193B5045AF2767164E1DFC967C1FB3F2E55A4BD1BFFE83B9C80D052B985D182EA0ADB2A3B7313D3FE14C8484B1E052588B9B7D2BBD2DF016199ECD06E1557CD0915B3353BBB64E0EC377FD028370DF92B52C7891428CDC67EB6184B523D1DB246C32F63078490F00EF8D647D148D47954515E2327CFEF98C582664B4C0F6CC41659");
+        public byte[] StandardDHParam2Order = AppUtil.hexStringToByteArray("8CF83642A709A097B447997640129DA299B1A47D1EB3750BA308B0FE64F5FBD3");
 
         public byte[] Prime;
         public byte[] Group;
@@ -114,25 +108,32 @@ public class PACE {
 
         public final DHKey GenerateKeyPair() {
             Key = new DHKey();
-            byte[] tempRef_Private = Key.Private;
-            byte[] tempRef_Public = Key.Public;
             try {
-                //D DiffieHellmann.GenerateKey(Group, Prime);
+                DiffieHellmann.GenerateKey(Group, Prime);
+                Key.Private = DiffieHellmann.PrivateKey;
+                if (DiffieHellmann.PublicKey.length == 257) {
+                    DiffieHellmann.PublicKey = Arrays.copyOfRange(DiffieHellmann.PublicKey, 1, DiffieHellmann.PublicKey.length);
+                }
+                Key.Public = DiffieHellmann.PublicKey;
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            Key.Public = tempRef_Public;
-            Key.Private = tempRef_Private;
             return Key;
         }
 
         public Asn1Tag DG14Tag;
 
         public DHAlgo(Asn1Tag tag) {
-            /*D int paramId = AppUtil.toUint(tag.CheckTag(0x30).Child(2, 0x02).getData());
+            int paramId = 0;
+            try {
+                paramId = AppUtil.toUint(tag.CheckTag(0x30).Child(2, (byte) 0x02).getData());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             if (paramId != 2) {
                 throw new RuntimeException("Parametri di default : " + paramId + " non supportati");
-            }*/
+            }
 
             Prime = StandardDHParam2Prime;
             Group = StandardDHParam2Group;
