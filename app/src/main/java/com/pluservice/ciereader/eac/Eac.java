@@ -169,7 +169,6 @@ public class Eac {
 
 	HashMap<String, PACE.PACEAlgo> PACEAlgo = new HashMap<>();
 	String DH_GM_DES_Oid = "04007f00070202040101"; //"BAB/AAcCAgQBAQ==";
-	String CAN = "836841";
 
 	public void paceAuthentication() {
 
@@ -202,17 +201,20 @@ public class Eac {
 			byte[] encryptedNonce = Asn1Tag.Companion.parse(res2.getResponse(), false).CheckTag(0x7c).Child(0, (byte) 0x80).getData();
 
 			// la chiave per decifrare il nonce è SHA1(K||00000003);
-			byte[] keyNonce = AppUtil.getLeft(AppUtil.getSha1(AppUtil.appendByteArray(CAN.getBytes(), new byte[]{(byte) 0x00, 0x00, 0x00, 0x03})), 16);
+			byte[] keyNonce = AppUtil.getLeft(AppUtil.getSha1(AppUtil.appendByteArray(can.getBytes(), new byte[]{(byte) 0x00, 0x00, 0x00, 0x03})), 16);
 			byte[] nonce = Algoritmi.desDec(keyNonce, encryptedNonce);
 			PACE.DHKey key1 = algo.GenerateEphimeralKey1();
 
 			// il secondo GA serve a inviare la chiave pubblica effimera
 			byte[] GAData2 = AppUtil.asn1Tag(AppUtil.asn1Tag(key1.Public, 0x81), 0x7c);
 			ApduResponse res3;
-			if (isoDep != null)
+			if (isoDep != null) {
+				byte[] apdu = new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData2, (byte) 0x00).GetBytes();
 				res3 = new ApduResponse(isoDep.transceive(new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData2, (byte) 0x00).GetBytes()));
-			else
+			} else {
+				byte[] apdu = new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData2, (byte) 0x00).GetBytes();
 				res3 = new ApduResponse(coupler.isoDepTransceive(new Apdu((byte) 0x10, (byte) 0x86, (byte) 0x00, (byte) 0x00, GAData2, (byte) 0x00).GetBytes()));
+			}
 			if (!res3.getSwHex().equals("9000")) {
 				throw new Exception("Errore nel protocollo PACE:General Authenticate 2 - " + res3.getSwHex());
 			}
