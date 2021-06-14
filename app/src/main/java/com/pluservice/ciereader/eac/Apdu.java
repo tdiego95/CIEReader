@@ -1,7 +1,5 @@
 package com.pluservice.ciereader.eac;
 
-import java.util.Arrays;
-
 public class Apdu {
 
     /// <summary>Byte CLA</summary>

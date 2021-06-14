@@ -1,7 +1,6 @@
 package com.pluservice.ciereader.neptune
 
 import android.content.Context
-import android.util.Log
 import com.pax.dal.IPicc
 import com.pax.dal.entity.EDetectMode
 import com.pax.dal.entity.EPiccType
@@ -22,7 +21,8 @@ class NeptuneCoupler(context: Context) : ICoupler {
     override fun isoDepTransceive(apduCommand: ByteArray?): ByteArray? {
         return if (isIsoDep()) {
             try {
-                reader!!.isoCommand(0.toByte(), apduCommand)
+                reader!!.cmdExchange(apduCommand, 0)
+                //reader!!.isoCommand(0.toByte(), apduCommand)
             } catch (e: PiccDevException) {
                 throw IOException(e.message)
             }

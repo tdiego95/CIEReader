@@ -8,7 +8,6 @@ import android.util.Log;
 
 import com.pluservice.ciereader.neptune.ICoupler;
 
-import org.jmrtd.PassportService;
 import org.jmrtd.lds.icao.MRZInfo;
 
 import java.io.IOException;
@@ -59,7 +58,8 @@ public class EacListener implements Runnable {
 			// --- END REGION ---
 
 			// --- REGION MRTD ---
-			/*D PassportService service = eac.auth();
+			/*D
+			PassportService service = eac.auth();
 
 			UserInfo userInfo = eac.readDg11(service);
 			sendDataToActivity(userInfo);
@@ -68,14 +68,16 @@ public class EacListener implements Runnable {
 			sendUserImageToActivity(photo);*/
 			// --- END REGION ---
 
-			isoDep.close(); //si chiude la connessione IsoDep
+			if (isoDep != null) {
+				isoDep.close(); //si chiude la connessione IsoDep
+			}
 
-		} catch (IOException excp) {
-			excp.printStackTrace();
-			Log.d("ASD", "Perdita tag NFC");
-		} catch (Exception e) {
-			e.printStackTrace();
-			Log.d("ASD", "EacListener Error : " + e.getMessage());
+		} catch (IOException ioEx) {
+			ioEx.printStackTrace();
+			Log.e("ASD", "Perdita tag NFC");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			Log.e("ASD", "EacListener Error : " + ex.getMessage());
 		}
 	}
 	

@@ -1,7 +1,5 @@
 package com.pluservice.ciereader.eac
 
-import java.util.Arrays
-
 internal class ApduResponse {
 
     var response: ByteArray = byteArrayOf()

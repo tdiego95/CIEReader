@@ -12,13 +12,10 @@ import android.nfc.NfcAdapter
 import android.nfc.NfcAdapter.ReaderCallback
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
-import android.os.AsyncTask
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.View
-import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -29,7 +26,6 @@ import com.pluservice.ciereader.eac.EacListener
 import com.pluservice.ciereader.eac.UserInfo
 import com.pluservice.ciereader.mrz.CaptureActivity
 import com.pluservice.ciereader.mrz.CaptureActivity.MRZ_RESULT
-import com.pluservice.ciereader.mrz.PreferencesActivity
 import com.pluservice.ciereader.neptune.ICoupler
 import com.pluservice.ciereader.neptune.NeptuneCoupler
 import com.pluservice.ciereader.neptune.NeptuneReader
@@ -38,7 +34,6 @@ import kotlinx.android.synthetic.main.activity_main.*
 import org.jmrtd.lds.icao.MRZInfo
 
 import org.spongycastle.jce.provider.BouncyCastleProvider
-import java.math.BigInteger
 
 import java.security.Security
 
@@ -58,7 +53,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
 
     var coupler: NeptuneCoupler? = null
 
-    val broadCastReceiver = object : BroadcastReceiver() {
+    val uiUpdatesReceiver = object : BroadcastReceiver() {
         override fun onReceive(contxt: Context?, intent: Intent?) {
             when (intent?.action) {
                 USER_INFO_FILTER -> { //QUI MI ARRIANO I DATI PERSONALI LETTI DALLA CARTA
@@ -131,7 +126,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
         intentFilter.addAction(USER_INFO_FILTER)
         intentFilter.addAction(USER_IMAGE_FILTER)
         intentFilter.addAction(UPDATE_INFO_FILTER)
-        registerReceiver(broadCastReceiver, intentFilter)
+        registerReceiver(uiUpdatesReceiver, intentFilter)
     }
 
     private fun initializeNFC() {
@@ -182,7 +177,7 @@ class MainActivity : AppCompatActivity(), ReaderCallback {
             eacListener.run()
 
         } catch (ex: Exception) {
-            Log.d("Error decoding tag : ", ex.message)
+            Log.e("ASD", "Error decoding tag : " + ex.message)
             ex.printStackTrace()
         }
     }

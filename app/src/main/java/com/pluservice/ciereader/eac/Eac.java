@@ -29,7 +29,6 @@ import org.jmrtd.lds.PACEInfo;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,7 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** effettua la lettura dei dati MRTD dal microprocessore **/
+/** effettua la lettura dei dati dal microprocessore **/
 
 public class Eac {
 
@@ -352,24 +351,13 @@ public class Eac {
 		return data;
 	}
 
-	private byte[] newApdu(byte cla, byte ins, byte p1, byte p2, byte le) {
-		byte[] pbtAPDU;
-		pbtAPDU = new byte[5];
-		pbtAPDU[0] = cla;
-		pbtAPDU[1] = ins;
-		pbtAPDU[2] = p1;
-		pbtAPDU[3] = p2;
-		pbtAPDU[4] = le;
-		return pbtAPDU;
-	}
-
 	//recupero la struttura dei dg, la conservo dentro una mappa
 	public void readDgs() throws Exception {
 
 		sendUpdateToActivity("Lettura data groups in corso");
 		Log.i(TAG, "leggo i dg");
 		mappaDg = new HashMap<Integer, byte[]>();
-		byte[] efCom = leggiDg(30);
+		byte[] efCom = readDg(30);
 		Log.i(TAG, "efcom: => " + AppUtil.bytesToHex(efCom));
 		Asn1Tag comtag = Asn1Tag.Companion.parse(efCom, false);
 		byte[] dhList = comtag.Child(2, (byte) 0x5c).getData();
@@ -395,23 +383,23 @@ public class Eac {
 			}
 
 			if (dgNum != 0)
-				mappaDg.put(dgNum, leggiDg(dgNum));
+				mappaDg.put(dgNum, readDg(dgNum));
 
 			if (!mappaDg.containsKey(new Integer(29)))
-				mappaDg.put(new Integer(29), leggiDg(29));
+				mappaDg.put(new Integer(29), readDg(29));
 		}
 
 		sendUpdateToActivity("Lettura data groups completata");
 	}
 
-	public void parseDg1() throws Exception {
+	public void parseDg1() {
 		//D IL DG1 TORNA L'MRZ, UTILIZZARE IN CASO DI BISOGNO ESTRAZIONE SESSO E NAZIONALITA
 	}
 
 	public UserInfo parseDg11() throws Exception {
 		sendUpdateToActivity("Inizio lettura dati personali");
 		if (mappaDg.containsKey(new Integer(11))) {
-			byte[] data = leggiDg(new Integer(11));
+			byte[] data = readDg(new Integer(11));
 			Asn1Tag tag = Asn1Tag.Companion.parse(data, false);
 
 			UserInfo userInfo = new UserInfo();
@@ -428,7 +416,7 @@ public class Eac {
 		}
 	}
 
-	public PassportService auth(/*mode*/) throws Exception {
+	public PassportService auth(/*mode*/) {
 
 		sendUpdateToActivity("Inizio lettura foto in corso");
 		Bitmap bitmap = null;
@@ -563,7 +551,7 @@ public class Eac {
 
 	//metodo per la lettura dei dg
 	//numDg: il numero del datagroup da leggere
-	private byte[] leggiDg(int numDg) throws Exception {
+	private byte[] readDg(int numDg) throws Exception {
 		Log.i(TAG, "Leggo il dg: " + numDg);
 
 		byte[] data = new byte[0];
@@ -753,10 +741,10 @@ public class Eac {
 		return finale;
 	}
 
-	private void setIndex(int... argomenti) {
+	private void setIndex(int... arguments) {
 		int tmpIndex = 0;
 		int tmpSegno = 0;
-		for (int value : argomenti) {
+		for (int value : arguments) {
 			if (Math.signum(value) < 0) {
 				tmpSegno = value & 0xFF;
 				tmpIndex += tmpSegno;
